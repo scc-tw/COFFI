@@ -119,36 +119,36 @@ template <class T> class section_impl_tmpl : public section
     // Section info functions
 
     //! @accessors{section_impl_tmpl}
-    COFFI_GET_SET_ACCESS(uint32_t, virtual_address);
-    COFFI_GET_SET_ACCESS(uint32_t, data_offset);
-    COFFI_GET_SET_ACCESS(uint32_t, reloc_offset);
-    COFFI_GET_SET_ACCESS(uint32_t, reloc_count);
-    COFFI_GET_SET_ACCESS(uint32_t, line_num_count);
-    COFFI_GET_SET_ACCESS(uint32_t, flags);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, virtual_address);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, data_offset);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, reloc_offset);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, reloc_count);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, line_num_count);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, flags);
 
-    COFFI_GET_SIZEOF();
+    COFFI_GET_SIZEOF_OVERRIDE();
     //! @endaccessors
 
     //------------------------------------------------------------------------------
-    uint32_t get_index() const { return index; }
+    uint32_t get_index() const override { return index; }
 
     //------------------------------------------------------------------------------
-    void set_index(uint32_t value) { index = value; }
+    void set_index(uint32_t value) override { index = value; }
 
     //------------------------------------------------------------------------------
-    const std::string& get_name() const { return name; }
+    const std::string& get_name() const override { return name; }
 
     //------------------------------------------------------------------------------
-    void set_name(const std::string& value)
+    void set_name(const std::string& value) override
     {
         stn_->name_to_section_string(value, header.name);
     }
 
     //------------------------------------------------------------------------------
-    const char* get_data() const { return data_.get(); }
+    const char* get_data() const override { return data_.get(); }
 
     //------------------------------------------------------------------------------
-    void set_data(const char* data, uint32_t size)
+    void set_data(const char* data, uint32_t size) override
     {
         clean();
         if (!data) {
@@ -168,13 +168,13 @@ template <class T> class section_impl_tmpl : public section
     }
 
     //------------------------------------------------------------------------------
-    void set_data(const std::string& data)
+    void set_data(const std::string& data) override
     {
         set_data(data.c_str(), (uint32_t)data.size());
     }
 
     //------------------------------------------------------------------------------
-    virtual void append_data(const char* data, uint32_t size)
+    void append_data(const char* data, uint32_t size) override
     {
         if (!data_) {
             set_data(data, size);
@@ -200,19 +200,19 @@ template <class T> class section_impl_tmpl : public section
     }
 
     //------------------------------------------------------------------------------
-    virtual void append_data(const std::string& data)
+    void append_data(const std::string& data) override
     {
         append_data(data.c_str(), (uint32_t)data.size());
     }
 
     //------------------------------------------------------------------------------
-    virtual const std::vector<relocation>& get_relocations() const
+    const std::vector<relocation>& get_relocations() const override
     {
         return relocations;
     }
 
     //------------------------------------------------------------------------------
-    virtual void add_relocation_entry(const rel_entry_generic* entry)
+    void add_relocation_entry(const rel_entry_generic* entry) override
     {
         relocation r{stn_, sym_, arch_};
         r.set_type(entry->type);
@@ -223,7 +223,7 @@ template <class T> class section_impl_tmpl : public section
     }
 
     //------------------------------------------------------------------------------
-    bool load(std::istream& stream, std::streampos header_offset)
+    bool load(std::istream& stream, std::streampos header_offset) override
     {
         std::fill_n(reinterpret_cast<char*>(&header), sizeof(header), '\0');
         stream.seekg(header_offset);
@@ -271,13 +271,13 @@ template <class T> class section_impl_tmpl : public section
     }
 
     //------------------------------------------------------------------------------
-    virtual void save_header(std::ostream& stream)
+    void save_header(std::ostream& stream) override
     {
         stream.write(reinterpret_cast<char*>(&header), sizeof(header));
     }
 
     //------------------------------------------------------------------------------
-    virtual void save_data(std::ostream& stream)
+    void save_data(std::ostream& stream) override
     {
         if (!data_ || get_data_offset() == 0) {
             return;
@@ -286,7 +286,7 @@ template <class T> class section_impl_tmpl : public section
     }
 
     //------------------------------------------------------------------------------
-    virtual void save_relocations(std::ostream& stream)
+    void save_relocations(std::ostream& stream) override
     {
         for (auto& entry : relocations) {
             entry.save(stream);
@@ -294,7 +294,7 @@ template <class T> class section_impl_tmpl : public section
     }
 
     //------------------------------------------------------------------------------
-    virtual uint32_t get_relocations_filesize()
+    uint32_t get_relocations_filesize() override
     {
         relocation rel{stn_, sym_, arch_};
         return narrow_cast<uint32_t>(rel.get_sizeof()) *
@@ -302,7 +302,7 @@ template <class T> class section_impl_tmpl : public section
     }
 
     //------------------------------------------------------------------------------
-    virtual void save_line_numbers(std::ostream& stream)
+    void save_line_numbers(std::ostream& stream) override
     {
         for (const auto& lnum : line_numbers) {
             stream.write(reinterpret_cast<const char*>(&lnum), sizeof(line_number));
@@ -310,7 +310,7 @@ template <class T> class section_impl_tmpl : public section
     }
 
     //------------------------------------------------------------------------------
-    virtual uint32_t get_line_numbers_filesize()
+    uint32_t get_line_numbers_filesize() override
     {
         return narrow_cast<uint32_t>(sizeof(line_number)) *
                narrow_cast<uint32_t>(line_numbers.size());
@@ -373,15 +373,15 @@ class section_impl : public section_impl_tmpl<section_header>
     }
 
     //! @accessors{section_impl}
-    COFFI_GET_SET_ACCESS(uint32_t, virtual_size);
-    COFFI_GET_SET_ACCESS(uint32_t, data_size);
-    COFFI_GET_SET_ACCESS_NONE(uint32_t, physical_address);
-    COFFI_GET_SET_ACCESS(uint32_t, line_num_offset);
-    COFFI_GET_SET_ACCESS_NONE(uint16_t, page_number);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, virtual_size);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, data_size);
+    COFFI_GET_SET_ACCESS_NONE_OVERRIDE(uint32_t, physical_address);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, line_num_offset);
+    COFFI_GET_SET_ACCESS_NONE_OVERRIDE(uint16_t, page_number);
     //! @endaccessors
 
     //------------------------------------------------------------------------------
-    uint32_t get_alignment() const
+    uint32_t get_alignment() const override
     {
         uint32_t align_nibble = (get_flags() >> 20) & 0xF;
         if (align_nibble == 0) {
@@ -391,7 +391,7 @@ class section_impl : public section_impl_tmpl<section_header>
     }
 
     //------------------------------------------------------------------------------
-    void set_alignment(uint32_t value)
+    void set_alignment(uint32_t value) override
     {
         set_flags((get_flags() & ~0xF00000) |
                   ((get_bit_number(value) & 0xF) << 20));
@@ -412,14 +412,14 @@ class section_impl_ti : public section_impl_tmpl<section_header_ti>
     }
 
     //! @accessors{section_impl_ti}
-    COFFI_GET_SET_ACCESS_NONE(uint32_t, virtual_size);
-    COFFI_GET_SET_ACCESS(uint32_t, physical_address);
-    COFFI_GET_SET_ACCESS_NONE(uint32_t, line_num_offset);
-    COFFI_GET_SET_ACCESS(uint16_t, page_number);
+    COFFI_GET_SET_ACCESS_NONE_OVERRIDE(uint32_t, virtual_size);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, physical_address);
+    COFFI_GET_SET_ACCESS_NONE_OVERRIDE(uint32_t, line_num_offset);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint16_t, page_number);
     //! @endaccessors
 
     //------------------------------------------------------------------------------
-    uint32_t get_data_size() const
+    uint32_t get_data_size() const override
     {
         auto sec_type     = get_flags() & 0x1F;
         bool is_allocated = (sec_type == STYP_REG) || (sec_type == STYP_NOLOAD);
@@ -432,7 +432,7 @@ class section_impl_ti : public section_impl_tmpl<section_header_ti>
     }
 
     //------------------------------------------------------------------------------
-    void set_data_size(uint32_t value)
+    void set_data_size(uint32_t value) override
     {
         auto sec_type     = get_flags() & 0x1F;
         bool is_allocated = (sec_type == STYP_REG) || (sec_type == STYP_NOLOAD);
@@ -445,10 +445,10 @@ class section_impl_ti : public section_impl_tmpl<section_header_ti>
     }
 
     //------------------------------------------------------------------------------
-    uint32_t get_alignment() const { return 1 << ((get_flags() >> 8) & 0xF); }
+    uint32_t get_alignment() const override { return 1 << ((get_flags() >> 8) & 0xF); }
 
     //------------------------------------------------------------------------------
-    void set_alignment(uint32_t value)
+    void set_alignment(uint32_t value) override
     {
         set_flags((get_flags() & ~0xF00) |
                   ((get_bit_number(value) & 0xF) << 8));

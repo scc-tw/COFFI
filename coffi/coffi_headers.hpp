@@ -242,18 +242,18 @@ template <class T> class coff_header_impl_tmpl : public coff_header
 
     //------------------------------------------------------------------------------
     //! @accessors{coff_header_impl_tmpl}
-    COFFI_GET_SET_ACCESS(uint16_t, sections_count);
-    COFFI_GET_SET_ACCESS(uint32_t, time_data_stamp);
-    COFFI_GET_SET_ACCESS(uint32_t, symbol_table_offset);
-    COFFI_GET_SET_ACCESS(uint32_t, symbols_count);
-    COFFI_GET_SET_ACCESS(uint16_t, optional_header_size);
-    COFFI_GET_SET_ACCESS(uint16_t, flags);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint16_t, sections_count);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, time_data_stamp);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, symbol_table_offset);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, symbols_count);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint16_t, optional_header_size);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint16_t, flags);
 
-    COFFI_GET_SIZEOF();
+    COFFI_GET_SIZEOF_OVERRIDE();
     //! @endaccessors
 
     //------------------------------------------------------------------------------
-    bool load(std::istream& stream)
+    bool load(std::istream& stream) override
     {
         stream.read(reinterpret_cast<char*>(&header), sizeof(header));
         if (stream.gcount() != sizeof(header)) {
@@ -264,7 +264,7 @@ template <class T> class coff_header_impl_tmpl : public coff_header
     }
 
     //------------------------------------------------------------------------------
-    void save(std::ostream& stream)
+    void save(std::ostream& stream) override
     {
         stream.write(reinterpret_cast<char*>(&header), sizeof(header));
     }
@@ -280,9 +280,9 @@ class coff_header_impl : public coff_header_impl_tmpl<coff_file_header>
 {
   public:
     //! @accessors{coff_header_impl}
-    COFFI_GET_SET_ACCESS(uint16_t, machine);
-    COFFI_GET_SET_ACCESS_NONE(uint16_t, version);
-    COFFI_GET_SET_ACCESS_NONE(uint16_t, target_id);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint16_t, machine);
+    COFFI_GET_SET_ACCESS_NONE_OVERRIDE(uint16_t, version);
+    COFFI_GET_SET_ACCESS_NONE_OVERRIDE(uint16_t, target_id);
     //! @endaccessors
 };
 
@@ -292,9 +292,9 @@ class coff_header_impl_ti : public coff_header_impl_tmpl<coff_file_header_ti>
 {
   public:
     //! @accessors{coff_header_impl_ti}
-    COFFI_GET_SET_ACCESS(uint16_t, version);
-    COFFI_GET_SET_ACCESS(uint16_t, target_id);
-    COFFI_GET_SET_ACCESS_NONE(uint16_t, machine);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint16_t, version);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint16_t, target_id);
+    COFFI_GET_SET_ACCESS_NONE_OVERRIDE(uint16_t, machine);
     //! @endaccessors
 };
 
@@ -343,18 +343,18 @@ template <class T> class optional_header_impl_tmpl : public optional_header
     //------------------------------------------------------------------------------
 
     //! @accessors{optional_header_impl_tmpl}
-    COFFI_GET_SET_ACCESS(uint16_t, magic);
-    COFFI_GET_SET_ACCESS(uint32_t, code_size);
-    COFFI_GET_SET_ACCESS(uint32_t, initialized_data_size);
-    COFFI_GET_SET_ACCESS(uint32_t, uninitialized_data_size);
-    COFFI_GET_SET_ACCESS(uint32_t, entry_point_address);
-    COFFI_GET_SET_ACCESS(uint32_t, code_base);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint16_t, magic);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, code_size);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, initialized_data_size);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, uninitialized_data_size);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, entry_point_address);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, code_base);
 
-    COFFI_GET_SIZEOF();
+    COFFI_GET_SIZEOF_OVERRIDE();
     //! @endaccessors
 
     //---------------------------------------------------------------------
-    bool load(std::istream& stream)
+    bool load(std::istream& stream) override
     {
         std::fill_n(reinterpret_cast<char*>(&header), sizeof(header), '\0');
         stream.read(reinterpret_cast<char*>(&header), sizeof(header));
@@ -365,7 +365,7 @@ template <class T> class optional_header_impl_tmpl : public optional_header
     }
 
     //------------------------------------------------------------------------------
-    void save(std::ostream& stream)
+    void save(std::ostream& stream) override
     {
         stream.write(reinterpret_cast<char*>(&header), sizeof(header));
     }
@@ -381,10 +381,10 @@ class optional_header_impl_pe
 {
   public:
     //! @accessors{optional_header_impl_pe}
-    COFFI_GET_SET_ACCESS(uint8_t, major_linker_version);
-    COFFI_GET_SET_ACCESS(uint8_t, minor_linker_version);
-    COFFI_GET_SET_ACCESS_NONE(uint16_t, linker_version);
-    COFFI_GET_SET_ACCESS(uint32_t, data_base);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint8_t, major_linker_version);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint8_t, minor_linker_version);
+    COFFI_GET_SET_ACCESS_NONE_OVERRIDE(uint16_t, linker_version);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, data_base);
     //! @endaccessors
 };
 
@@ -395,10 +395,10 @@ class optional_header_impl_pe_plus
 {
   public:
     //! @accessors{optional_header_impl_pe_plus}
-    COFFI_GET_SET_ACCESS(uint8_t, major_linker_version);
-    COFFI_GET_SET_ACCESS(uint8_t, minor_linker_version);
-    COFFI_GET_SET_ACCESS_NONE(uint16_t, linker_version);
-    COFFI_GET_SET_ACCESS_NONE(uint32_t, data_base);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint8_t, major_linker_version);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint8_t, minor_linker_version);
+    COFFI_GET_SET_ACCESS_NONE_OVERRIDE(uint16_t, linker_version);
+    COFFI_GET_SET_ACCESS_NONE_OVERRIDE(uint32_t, data_base);
     //! @endaccessors
 };
 
@@ -409,10 +409,10 @@ class optional_header_impl_ti
 {
   public:
     //! @accessors{optional_header_impl_ti}
-    COFFI_GET_SET_ACCESS(uint16_t, linker_version);
-    COFFI_GET_SET_ACCESS_NONE(uint8_t, major_linker_version);
-    COFFI_GET_SET_ACCESS_NONE(uint8_t, minor_linker_version);
-    COFFI_GET_SET_ACCESS(uint32_t, data_base);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint16_t, linker_version);
+    COFFI_GET_SET_ACCESS_NONE_OVERRIDE(uint8_t, major_linker_version);
+    COFFI_GET_SET_ACCESS_NONE_OVERRIDE(uint8_t, minor_linker_version);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, data_base);
     //! @endaccessors
 };
 
@@ -473,29 +473,29 @@ template <class T> class win_header_impl : public win_header
 
     //------------------------------------------------------------------------------
     //! @accessors{win_header_impl}
-    COFFI_GET_SET_ACCESS(uint64_t, image_base);
-    COFFI_GET_SET_ACCESS(uint32_t, section_alignment);
-    COFFI_GET_SET_ACCESS(uint32_t, file_alignment);
-    COFFI_GET_SET_ACCESS(uint16_t, major_os_version);
-    COFFI_GET_SET_ACCESS(uint16_t, minor_os_version);
-    COFFI_GET_SET_ACCESS(uint16_t, major_image_version);
-    COFFI_GET_SET_ACCESS(uint16_t, minor_image_version);
-    COFFI_GET_SET_ACCESS(uint16_t, major_subsystem_version);
-    COFFI_GET_SET_ACCESS(uint16_t, minor_subsystem_version);
-    COFFI_GET_SET_ACCESS(uint32_t, win32_version_value);
-    COFFI_GET_SET_ACCESS(uint32_t, image_size);
-    COFFI_GET_SET_ACCESS(uint32_t, headers_size);
-    COFFI_GET_SET_ACCESS(uint32_t, checksum);
-    COFFI_GET_SET_ACCESS(uint16_t, subsystem);
-    COFFI_GET_SET_ACCESS(uint16_t, dll_flags);
-    COFFI_GET_SET_ACCESS(uint64_t, stack_reserve_size);
-    COFFI_GET_SET_ACCESS(uint64_t, stack_commit_size);
-    COFFI_GET_SET_ACCESS(uint64_t, heap_reserve_size);
-    COFFI_GET_SET_ACCESS(uint64_t, heap_commit_size);
-    COFFI_GET_SET_ACCESS(uint32_t, loader_flags);
-    COFFI_GET_SET_ACCESS(uint32_t, number_of_rva_and_sizes);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint64_t, image_base);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, section_alignment);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, file_alignment);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint16_t, major_os_version);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint16_t, minor_os_version);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint16_t, major_image_version);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint16_t, minor_image_version);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint16_t, major_subsystem_version);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint16_t, minor_subsystem_version);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, win32_version_value);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, image_size);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, headers_size);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, checksum);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint16_t, subsystem);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint16_t, dll_flags);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint64_t, stack_reserve_size);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint64_t, stack_commit_size);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint64_t, heap_reserve_size);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint64_t, heap_commit_size);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, loader_flags);
+    COFFI_GET_SET_ACCESS_OVERRIDE(uint32_t, number_of_rva_and_sizes);
 
-    COFFI_GET_SIZEOF();
+    COFFI_GET_SIZEOF_OVERRIDE();
     //! @endaccessors
 
     //------------------------------------------------------------------------------
@@ -512,7 +512,7 @@ template <class T> class win_header_impl : public win_header
     }
 
     //------------------------------------------------------------------------------
-    void save(std::ostream& stream)
+    void save(std::ostream& stream) override
     {
         stream.write(reinterpret_cast<char*>(&header), sizeof(header));
     }

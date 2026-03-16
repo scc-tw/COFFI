@@ -79,20 +79,33 @@ inline constexpr To narrow_cast_impl(From value) noexcept {
 
 //! Defines a **get_NAME** function for accessing the **NAME** structure field.
 #define COFFI_GET_ACCESS(TYPE, NAME) \
-    TYPE get_##NAME() const override { return header.NAME; }
+    TYPE get_##NAME() const { return header.NAME; }
 
 //! Defines a **set_NAME** function for accessing the **NAME** structure field.
 #define COFFI_SET_ACCESS(TYPE, NAME) \
-    void set_##NAME(TYPE value) override { header.NAME = narrow_cast<decltype(header.NAME)>(value); }
+    void set_##NAME(TYPE value) { header.NAME = narrow_cast<decltype(header.NAME)>(value); }
 
 //! Defines a **get_NAME** and a **set_NAME** functions for accessing the **NAME** structure field.
 #define COFFI_GET_SET_ACCESS(TYPE, NAME)            \
+    TYPE get_##NAME() const { return header.NAME; } \
+    void set_##NAME(TYPE value) { header.NAME = narrow_cast<decltype(header.NAME)>(value); }
+
+//! Defines a **get_NAME** function that overrides a virtual base class method.
+#define COFFI_GET_ACCESS_OVERRIDE(TYPE, NAME) \
+    TYPE get_##NAME() const override { return header.NAME; }
+
+//! Defines a **set_NAME** function that overrides a virtual base class method.
+#define COFFI_SET_ACCESS_OVERRIDE(TYPE, NAME) \
+    void set_##NAME(TYPE value) override { header.NAME = narrow_cast<decltype(header.NAME)>(value); }
+
+//! Defines **get_NAME** and **set_NAME** functions that override virtual base class methods.
+#define COFFI_GET_SET_ACCESS_OVERRIDE(TYPE, NAME)            \
     TYPE get_##NAME() const override { return header.NAME; } \
     void set_##NAME(TYPE value) override { header.NAME = narrow_cast<decltype(header.NAME)>(value); }
 
 //! Disables the **get_NAME** function for prohibiting read accesses to the **NAME** structure field.
 #define COFFI_GET_ACCESS_NONE(TYPE, NAME)                        \
-    TYPE get_##NAME() const override                             \
+    TYPE get_##NAME() const                                      \
     {                                                            \
         throw std::runtime_error("The header field '" STRINGIFY( \
             NAME) "' is not applicable to this COFF version");   \
@@ -100,7 +113,7 @@ inline constexpr To narrow_cast_impl(From value) noexcept {
 
 //! Disables the **set_NAME** function for prohibiting write accesses to the **NAME** structure field.
 #define COFFI_SET_ACCESS_NONE(TYPE, NAME)                        \
-    void set_##NAME(TYPE value) override                         \
+    void set_##NAME(TYPE value)                                  \
     {                                                            \
         throw std::runtime_error("The header field '" STRINGIFY( \
             NAME) "' is not applicable to this COFF version");   \
@@ -108,6 +121,35 @@ inline constexpr To narrow_cast_impl(From value) noexcept {
 
 //! Disables the **get_NAME** and the **set_NAME** function for prohibiting all accesses to the **NAME** structure field.
 #define COFFI_GET_SET_ACCESS_NONE(TYPE, NAME)                    \
+    TYPE get_##NAME() const                                      \
+    {                                                            \
+        throw std::runtime_error("The header field '" STRINGIFY( \
+            NAME) "' is not applicable to this COFF version");   \
+    }                                                            \
+    void set_##NAME(TYPE)                                        \
+    {                                                            \
+        throw std::runtime_error("The header field '" STRINGIFY( \
+            NAME) "' is not applicable to this COFF version");   \
+    }
+
+//! Disables **get_NAME** (override) for prohibiting read accesses to the **NAME** structure field.
+#define COFFI_GET_ACCESS_NONE_OVERRIDE(TYPE, NAME)               \
+    TYPE get_##NAME() const override                             \
+    {                                                            \
+        throw std::runtime_error("The header field '" STRINGIFY( \
+            NAME) "' is not applicable to this COFF version");   \
+    }
+
+//! Disables **set_NAME** (override) for prohibiting write accesses to the **NAME** structure field.
+#define COFFI_SET_ACCESS_NONE_OVERRIDE(TYPE, NAME)               \
+    void set_##NAME(TYPE value) override                         \
+    {                                                            \
+        throw std::runtime_error("The header field '" STRINGIFY( \
+            NAME) "' is not applicable to this COFF version");   \
+    }
+
+//! Disables **get_NAME** and **set_NAME** (override) for prohibiting all accesses to the **NAME** structure field.
+#define COFFI_GET_SET_ACCESS_NONE_OVERRIDE(TYPE, NAME)           \
     TYPE get_##NAME() const override                             \
     {                                                            \
         throw std::runtime_error("The header field '" STRINGIFY( \
@@ -125,6 +167,10 @@ inline constexpr To narrow_cast_impl(From value) noexcept {
 //! Defines the **get_sizeof** function for returning the size of the COFF file structure.
 #define COFFI_GET_SIZEOF() \
     size_t get_sizeof() const { return sizeof(header); }
+
+//! Defines the **get_sizeof** function (override) for returning the size of the COFF file structure.
+#define COFFI_GET_SIZEOF_OVERRIDE() \
+    size_t get_sizeof() const override { return sizeof(header); }
 
 //! @}
 
