@@ -142,18 +142,29 @@ class coffi_strings : public virtual string_to_name_provider
             header->get_symbol_table_offset() +
             header->get_symbols_count() * sizeof(symbol_record);
         stream.seekg(strings_offset);
-        stream.read(strings_.get(), 4);
-        std::unique_ptr<char[]> new_strings(new(std::nothrow) char[get_strings_size()]());
+
+        // Read the 4-byte size header first
+        uint32_t str_size = 0;
+        stream.read(reinterpret_cast<char*>(&str_size), 4);
+        if (stream.gcount() != 4 || str_size < 4) {
+            return false;
+        }
+
+        // Allocate and read the remaining bytes (size includes the 4-byte header)
+        std::unique_ptr<char[]> new_strings(new(std::nothrow) char[str_size]());
         if (!new_strings) {
             return false;
         }
-        strings_reserved_ = get_strings_size();
-        stream.seekg(strings_offset);
-        stream.read(new_strings.get(), get_strings_size());
-        if (stream.gcount() !=
-            static_cast<std::streamsize>(get_strings_size())) {
-            return false;
+        // Store size in first 4 bytes, then read the rest in one shot
+        std::memcpy(new_strings.get(), &str_size, 4);
+        uint32_t remaining = str_size - 4;
+        if (remaining > 0) {
+            stream.read(new_strings.get() + 4, remaining);
+            if (stream.gcount() != static_cast<std::streamsize>(remaining)) {
+                return false;
+            }
         }
+        strings_reserved_ = str_size;
         strings_ = std::move(new_strings);
         return true;
     }

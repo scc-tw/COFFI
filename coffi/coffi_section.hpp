@@ -256,25 +256,59 @@ template <class T> class section_impl_tmpl : public section
             }
         }
 
-        // Read relocations
+        // Read relocations (bulk-read then parse)
         if (get_reloc_count() != 0) {
             stream.seekg(get_reloc_offset());
-            for (uint32_t i = 0; i < get_reloc_count(); ++i) {
-                relocation rel{stn_, sym_, arch_};
-                rel.load(stream);
-                relocations.push_back(rel);
+            uint32_t reloc_count = get_reloc_count();
+            relocations.reserve(reloc_count);
+
+            auto arch = arch_->get_architecture();
+            if (arch == COFFI_ARCHITECTURE_TI) {
+                std::vector<rel_entry_ti> raw(reloc_count);
+                stream.read(reinterpret_cast<char*>(raw.data()),
+                            reloc_count * sizeof(rel_entry_ti));
+                for (uint32_t i = 0; i < reloc_count; ++i) {
+                    relocation rel{stn_, sym_, arch_};
+                    rel.set_virtual_address(raw[i].virtual_address);
+                    rel.set_type(raw[i].type);
+                    rel.set_reserved(raw[i].reserved);
+                    rel.set_symbol(raw[i].symbol_table_index);
+                    relocations.push_back(std::move(rel));
+                }
+            }
+            else if (arch == COFFI_ARCHITECTURE_CEVA) {
+                std::vector<rel_entry_ceva> raw(reloc_count);
+                stream.read(reinterpret_cast<char*>(raw.data()),
+                            reloc_count * sizeof(rel_entry_ceva));
+                for (uint32_t i = 0; i < reloc_count; ++i) {
+                    relocation rel{stn_, sym_, arch_};
+                    rel.set_virtual_address(raw[i].virtual_address);
+                    rel.set_type(raw[i].type);
+                    rel.set_symbol(raw[i].symbol_table_index);
+                    relocations.push_back(std::move(rel));
+                }
+            }
+            else {
+                std::vector<rel_entry> raw(reloc_count);
+                stream.read(reinterpret_cast<char*>(raw.data()),
+                            reloc_count * sizeof(rel_entry));
+                for (uint32_t i = 0; i < reloc_count; ++i) {
+                    relocation rel{stn_, sym_, arch_};
+                    rel.set_virtual_address(raw[i].virtual_address);
+                    rel.set_type(raw[i].type);
+                    rel.set_symbol(raw[i].symbol_table_index);
+                    relocations.push_back(std::move(rel));
+                }
             }
         }
 
-        // Read line numbers
+        // Read line numbers (bulk-read)
         if (get_line_num_count() != 0) {
             stream.seekg(get_line_num_offset());
-            for (uint32_t i = 0; i < get_line_num_count(); ++i) {
-                line_number lnum;
-                stream.read(reinterpret_cast<char*>(&lnum),
-                            sizeof(line_number));
-                line_numbers.push_back(lnum);
-            }
+            uint32_t lnum_count = get_line_num_count();
+            line_numbers.resize(lnum_count);
+            stream.read(reinterpret_cast<char*>(line_numbers.data()),
+                        lnum_count * sizeof(line_number));
         }
         return true;
     }

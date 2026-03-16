@@ -126,6 +126,10 @@ class symbol
     }
 
     //---------------------------------------------------------------------
+    symbol_record&       get_header_ref() { return header; }
+    const symbol_record& get_header_ref() const { return header; }
+
+    //---------------------------------------------------------------------
   protected:
     symbol_record                        header;
     std::vector<auxiliary_symbol_record> auxs;
@@ -230,15 +234,38 @@ class coffi_symbols : public virtual symbol_provider,
             return true;
         }
 
+        uint32_t sym_count = header->get_symbols_count();
         stream.seekg(header->get_symbol_table_offset());
-        for (uint32_t i = 0; i < header->get_symbols_count(); ++i) {
+
+        // Bulk-read the entire symbol table into memory
+        uint32_t table_size = sym_count * sizeof(symbol_record);
+        std::vector<symbol_record> raw(sym_count);
+        stream.read(reinterpret_cast<char*>(raw.data()), table_size);
+        if (stream.gcount() != static_cast<std::streamsize>(table_size)) {
+            return false;
+        }
+
+        symbols_.reserve(sym_count);
+        for (uint32_t i = 0; i < sym_count; ++i) {
             symbol s{this};
-            if (!s.load(stream)) {
-                return false;
+            std::memcpy(reinterpret_cast<char*>(&s.get_header_ref()),
+                        &raw[i], sizeof(symbol_record));
+
+            uint8_t aux_count = raw[i].aux_symbols_number;
+            if (aux_count > 0) {
+                auto& auxs = s.get_auxiliary_symbols();
+                auxs.reserve(aux_count);
+                for (uint8_t j = 0; j < aux_count && (i + 1 + j) < sym_count; ++j) {
+                    auxiliary_symbol_record a;
+                    std::memcpy(reinterpret_cast<char*>(&a),
+                                &raw[i + 1 + j], sizeof(symbol_record));
+                    auxs.push_back(a);
+                }
             }
+
             s.set_index(i);
-            i += narrow_cast<uint32_t>(s.get_auxiliary_symbols().size());
-            symbols_.push_back(s);
+            i += aux_count;
+            symbols_.push_back(std::move(s));
         }
 
         return true;
