@@ -48,12 +48,18 @@ class imemstreambuf : public std::streambuf
     pos_type seekoff(off_type off, std::ios_base::seekdir dir,
                      std::ios_base::openmode /*which*/) override
     {
+        char* newpos = nullptr;
         if (dir == std::ios_base::beg)
-            setg(eback(), eback() + off, egptr());
+            newpos = eback() + off;
         else if (dir == std::ios_base::cur)
-            setg(eback(), gptr() + off, egptr());
+            newpos = gptr() + off;
         else if (dir == std::ios_base::end)
-            setg(eback(), egptr() + off, egptr());
+            newpos = egptr() + off;
+
+        if (!newpos || newpos < eback() || newpos > egptr()) {
+            return pos_type(off_type(-1));
+        }
+        setg(eback(), newpos, egptr());
         return gptr() - eback();
     }
 

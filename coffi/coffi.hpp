@@ -142,7 +142,7 @@ class coffi : public coffi_strings,
         clean();
         stream.seekg(0);
 
-        // Detect architecture (minimal — only read COFF header)
+        // Detect architecture — same validation as full load()
         architecture_ = COFFI_ARCHITECTURE_NONE;
         dos_header_   = std::make_unique<dos_header>();
         if (dos_header_->load(stream)) {
@@ -154,9 +154,55 @@ class coffi : public coffi_strings,
         }
 
         coff_header_ = std::make_unique<coff_header_impl>();
-        if (!coff_header_->load(stream)) {
-            // Try TI format
+        if (coff_header_->load(stream)) {
+            static constexpr uint16_t pe_machines[] = {
+                IMAGE_FILE_MACHINE_AM33,      IMAGE_FILE_MACHINE_AMD64,
+                IMAGE_FILE_MACHINE_ARM,       IMAGE_FILE_MACHINE_ARMNT,
+                IMAGE_FILE_MACHINE_ARM64,     IMAGE_FILE_MACHINE_EBC,
+                IMAGE_FILE_MACHINE_I386,      IMAGE_FILE_MACHINE_IA64,
+                IMAGE_FILE_MACHINE_M32R,      IMAGE_FILE_MACHINE_MIPS16,
+                IMAGE_FILE_MACHINE_MIPSFPU,   IMAGE_FILE_MACHINE_MIPSFPU16,
+                IMAGE_FILE_MACHINE_POWERPC,   IMAGE_FILE_MACHINE_POWERPCFP,
+                IMAGE_FILE_MACHINE_R4000,     IMAGE_FILE_MACHINE_SH3,
+                IMAGE_FILE_MACHINE_SH3DSP,    IMAGE_FILE_MACHINE_SH4,
+                IMAGE_FILE_MACHINE_SH5,       IMAGE_FILE_MACHINE_THUMB,
+                IMAGE_FILE_MACHINE_WCEMIPSV2,
+            };
+            if (std::find(std::begin(pe_machines), std::end(pe_machines),
+                          coff_header_->get_machine()) != std::end(pe_machines)) {
+                architecture_ = COFFI_ARCHITECTURE_PE;
+            }
+            else {
+                static constexpr uint16_t ceva_machines[] = {
+                    CEVA_MACHINE_XC4210_LIB,
+                    CEVA_MACHINE_XC4210_OBJ,
+                };
+                if (std::find(std::begin(ceva_machines), std::end(ceva_machines),
+                              coff_header_->get_machine()) != std::end(ceva_machines)) {
+                    architecture_ = COFFI_ARCHITECTURE_CEVA;
+                }
+            }
+        }
+
+        // Try TI format if not recognized
+        if (architecture_ == COFFI_ARCHITECTURE_NONE) {
             coff_header_ = std::make_unique<coff_header_impl_ti>();
+            stream.seekg(0);
+            if (coff_header_->load(stream)) {
+                static constexpr uint16_t target_ids[] = {
+                    TMS470,      TMS320C5400, TMS320C6000,     TMS320C5500,
+                    TMS320C2800, MSP430,      TMS320C5500plus,
+                };
+                if (std::find(std::begin(target_ids), std::end(target_ids),
+                              coff_header_->get_target_id()) != std::end(target_ids)) {
+                    architecture_ = COFFI_ARCHITECTURE_TI;
+                }
+            }
+        }
+
+        if (architecture_ == COFFI_ARCHITECTURE_NONE) {
+            // Default to PE format header
+            coff_header_ = std::make_unique<coff_header_impl>();
             stream.seekg(0);
             if (!coff_header_->load(stream)) {
                 clean();
@@ -688,8 +734,16 @@ class coffi : public coffi_strings,
         }
         stream.seekg(0, std::ios::end);
         auto file_size = stream.tellg();
+        if (file_size < 0) {
+            return false;
+        }
         stream.seekg(0);
-        buf.resize(static_cast<size_t>(file_size));
+        try {
+            buf.resize(static_cast<size_t>(file_size));
+        }
+        catch (const std::bad_alloc&) {
+            return false;
+        }
         stream.read(buf.data(), file_size);
         return stream.gcount() == file_size;
     }

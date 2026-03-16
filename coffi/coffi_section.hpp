@@ -215,6 +215,9 @@ template <class T> class section_impl_tmpl : public section
     }
 
     //------------------------------------------------------------------------------
+    //! @note Relocations are materialized lazily on first access.
+    //! This method is not thread-safe — do not call concurrently
+    //! from multiple threads on the same section object.
     virtual const std::vector<relocation>& get_relocations() const
     {
         materialize_relocations();
@@ -232,6 +235,7 @@ template <class T> class section_impl_tmpl : public section
     //------------------------------------------------------------------------------
     bool load(std::istream& stream, std::streampos header_offset)
     {
+        std::fill_n(reinterpret_cast<char*>(&header), sizeof(header), '\0');
         stream.seekg(header_offset);
         stream.read(reinterpret_cast<char*>(&header), sizeof(header));
 
@@ -244,7 +248,7 @@ template <class T> class section_impl_tmpl : public section
         if (!dont) {
             data_reserved_ = get_data_size();
             if ((get_data_offset() != 0) && (data_reserved_ != 0)) {
-                data_.reset(new(std::nothrow) char[data_reserved_]);
+                data_.reset(new(std::nothrow) char[data_reserved_]());
                 if (!data_) {
                     return false;
                 }
@@ -262,9 +266,13 @@ template <class T> class section_impl_tmpl : public section
 
             auto arch = arch_->get_architecture();
             if (arch == COFFI_ARCHITECTURE_TI) {
+                auto expected = reloc_count * sizeof(rel_entry_ti);
                 std::vector<rel_entry_ti> raw(reloc_count);
-                stream.read(reinterpret_cast<char*>(raw.data()),
-                            reloc_count * sizeof(rel_entry_ti));
+                stream.read(reinterpret_cast<char*>(raw.data()), expected);
+                if (stream.gcount() != static_cast<std::streamsize>(expected)) {
+                    rel_entries_.clear();
+                    return false;
+                }
                 for (uint32_t i = 0; i < reloc_count; ++i) {
                     rel_entries_[i].virtual_address    = raw[i].virtual_address;
                     rel_entries_[i].symbol_table_index = raw[i].symbol_table_index;
@@ -273,9 +281,13 @@ template <class T> class section_impl_tmpl : public section
                 }
             }
             else if (arch == COFFI_ARCHITECTURE_CEVA) {
+                auto expected = reloc_count * sizeof(rel_entry_ceva);
                 std::vector<rel_entry_ceva> raw(reloc_count);
-                stream.read(reinterpret_cast<char*>(raw.data()),
-                            reloc_count * sizeof(rel_entry_ceva));
+                stream.read(reinterpret_cast<char*>(raw.data()), expected);
+                if (stream.gcount() != static_cast<std::streamsize>(expected)) {
+                    rel_entries_.clear();
+                    return false;
+                }
                 for (uint32_t i = 0; i < reloc_count; ++i) {
                     rel_entries_[i].virtual_address    = raw[i].virtual_address;
                     rel_entries_[i].symbol_table_index = raw[i].symbol_table_index;
@@ -283,9 +295,13 @@ template <class T> class section_impl_tmpl : public section
                 }
             }
             else {
+                auto expected = reloc_count * sizeof(rel_entry);
                 std::vector<rel_entry> raw(reloc_count);
-                stream.read(reinterpret_cast<char*>(raw.data()),
-                            reloc_count * sizeof(rel_entry));
+                stream.read(reinterpret_cast<char*>(raw.data()), expected);
+                if (stream.gcount() != static_cast<std::streamsize>(expected)) {
+                    rel_entries_.clear();
+                    return false;
+                }
                 for (uint32_t i = 0; i < reloc_count; ++i) {
                     rel_entries_[i].virtual_address    = raw[i].virtual_address;
                     rel_entries_[i].symbol_table_index = raw[i].symbol_table_index;
@@ -299,9 +315,15 @@ template <class T> class section_impl_tmpl : public section
         if (get_line_num_count() != 0) {
             stream.seekg(get_line_num_offset());
             uint32_t lnum_count = get_line_num_count();
+            auto expected =
+                static_cast<std::streamsize>(lnum_count * sizeof(line_number));
             line_numbers.resize(lnum_count);
             stream.read(reinterpret_cast<char*>(line_numbers.data()),
-                        lnum_count * sizeof(line_number));
+                        expected);
+            if (stream.gcount() != expected) {
+                line_numbers.clear();
+                return false;
+            }
         }
         return true;
     }
