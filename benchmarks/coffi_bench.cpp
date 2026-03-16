@@ -201,3 +201,158 @@ static void BM_SymbolLookup_ByIndex(benchmark::State& state) {
     }
 }
 BENCHMARK(BM_SymbolLookup_ByIndex);
+
+// ---------------------------------------------------------------------------
+// Stress tests: synthetic large PE and heavy symbol tables
+// ---------------------------------------------------------------------------
+
+// Generate a large PE with many sections and large data
+static std::string generate_large_pe(int num_sections, int data_per_section) {
+    coffi c;
+    c.create(COFFI_ARCHITECTURE_PE);
+    c.create_optional_header();
+
+    std::vector<char> filler(data_per_section, '\xCC');
+    for (int i = 0; i < num_sections; ++i) {
+        std::string name = ".s" + std::to_string(i);
+        auto* sec = c.add_section(name);
+        sec->set_data(filler.data(), static_cast<uint32_t>(filler.size()));
+        sec->set_virtual_address(0x1000 * (i + 1));
+        sec->set_virtual_size(data_per_section);
+        sec->set_flags(IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ);
+    }
+
+    std::ostringstream out(std::ios::binary);
+    c.save(out);
+    return out.str();
+}
+
+// Generate an OBJ with many symbols and relocations
+static std::string generate_heavy_obj(int num_symbols, int num_sections,
+                                       int relocs_per_section) {
+    coffi c;
+    c.create(COFFI_ARCHITECTURE_PE);
+
+    // Add symbols
+    for (int i = 0; i < num_symbols; ++i) {
+        std::string name = "_sym_" + std::to_string(i);
+        auto* sym = c.add_symbol(name);
+        sym->set_section_number(1);
+        sym->set_value(i * 4);
+        sym->set_type(0x20);
+        sym->set_storage_class(2);
+    }
+
+    // Add sections with relocations
+    for (int i = 0; i < num_sections; ++i) {
+        std::string name = ".t" + std::to_string(i);
+        auto* sec = c.add_section(name);
+        // Need enough data to hold the relocations
+        uint32_t data_size = relocs_per_section * 4 + 256;
+        std::vector<char> data(data_size, '\x90');
+        sec->set_data(data.data(), data_size);
+        sec->set_flags(IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_READ |
+                        IMAGE_SCN_MEM_EXECUTE);
+
+        for (int r = 0; r < relocs_per_section; ++r) {
+            rel_entry_generic entry{};
+            entry.virtual_address = r * 4;
+            entry.symbol_table_index = r % num_symbols;
+            entry.type = 0x14; // IMAGE_REL_I386_DIR32
+            sec->add_relocation_entry(&entry);
+        }
+    }
+
+    std::ostringstream out(std::ios::binary);
+    c.save(out);
+    return out.str();
+}
+
+// --- Large PE benchmarks ---
+
+static void BM_Load_LargePE_50sec_64KB(benchmark::State& state) {
+    auto buf = generate_large_pe(50, 65536); // 50 sections × 64KB = ~3.2MB
+    state.counters["file_size"] = buf.size();
+    for (auto _ : state) {
+        std::istringstream ss(buf, std::ios::binary);
+        coffi c;
+        benchmark::DoNotOptimize(c.load(ss));
+    }
+    state.SetBytesProcessed(state.iterations() * buf.size());
+}
+BENCHMARK(BM_Load_LargePE_50sec_64KB);
+
+static void BM_Save_LargePE_50sec_64KB(benchmark::State& state) {
+    auto buf = generate_large_pe(50, 65536);
+    coffi c;
+    { std::istringstream ss(buf, std::ios::binary); c.load(ss); }
+    for (auto _ : state) {
+        std::ostringstream ss(std::ios::binary);
+        benchmark::DoNotOptimize(c.save(ss));
+    }
+    state.SetBytesProcessed(state.iterations() * buf.size());
+}
+BENCHMARK(BM_Save_LargePE_50sec_64KB);
+
+static void BM_Load_LargePE_200sec_256KB(benchmark::State& state) {
+    auto buf = generate_large_pe(200, 262144); // 200 sections × 256KB = ~50MB
+    state.counters["file_size"] = buf.size();
+    for (auto _ : state) {
+        std::istringstream ss(buf, std::ios::binary);
+        coffi c;
+        benchmark::DoNotOptimize(c.load(ss));
+    }
+    state.SetBytesProcessed(state.iterations() * buf.size());
+}
+BENCHMARK(BM_Load_LargePE_200sec_256KB);
+
+static void BM_Save_LargePE_200sec_256KB(benchmark::State& state) {
+    auto buf = generate_large_pe(200, 262144);
+    coffi c;
+    { std::istringstream ss(buf, std::ios::binary); c.load(ss); }
+    for (auto _ : state) {
+        std::ostringstream ss(std::ios::binary);
+        benchmark::DoNotOptimize(c.save(ss));
+    }
+    state.SetBytesProcessed(state.iterations() * buf.size());
+}
+BENCHMARK(BM_Save_LargePE_200sec_256KB);
+
+// --- Heavy symbol table benchmarks ---
+
+static void BM_Load_HeavyOBJ_10Ksym_50sec_100reloc(benchmark::State& state) {
+    auto buf = generate_heavy_obj(10000, 50, 100); // 10K symbols, 5K relocs
+    state.counters["file_size"] = buf.size();
+    for (auto _ : state) {
+        std::istringstream ss(buf, std::ios::binary);
+        coffi c;
+        benchmark::DoNotOptimize(c.load(ss));
+    }
+    state.SetBytesProcessed(state.iterations() * buf.size());
+}
+BENCHMARK(BM_Load_HeavyOBJ_10Ksym_50sec_100reloc);
+
+static void BM_Load_HeavyOBJ_50Ksym_100sec_500reloc(benchmark::State& state) {
+    auto buf = generate_heavy_obj(50000, 100, 500); // 50K symbols, 50K relocs
+    state.counters["file_size"] = buf.size();
+    for (auto _ : state) {
+        std::istringstream ss(buf, std::ios::binary);
+        coffi c;
+        benchmark::DoNotOptimize(c.load(ss));
+    }
+    state.SetBytesProcessed(state.iterations() * buf.size());
+}
+BENCHMARK(BM_Load_HeavyOBJ_50Ksym_100sec_500reloc);
+
+// Extreme: simulate a large debug build OBJ
+static void BM_Load_HeavyOBJ_100Ksym_200sec_1000reloc(benchmark::State& state) {
+    auto buf = generate_heavy_obj(100000, 200, 1000); // 100K sym, 200K relocs
+    state.counters["file_size"] = buf.size();
+    for (auto _ : state) {
+        std::istringstream ss(buf, std::ios::binary);
+        coffi c;
+        benchmark::DoNotOptimize(c.load(ss));
+    }
+    state.SetBytesProcessed(state.iterations() * buf.size());
+}
+BENCHMARK(BM_Load_HeavyOBJ_100Ksym_200sec_1000reloc);
