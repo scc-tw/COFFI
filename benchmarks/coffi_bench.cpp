@@ -356,3 +356,66 @@ static void BM_Load_HeavyOBJ_100Ksym_200sec_1000reloc(benchmark::State& state) {
     state.SetBytesProcessed(state.iterations() * buf.size());
 }
 BENCHMARK(BM_Load_HeavyOBJ_100Ksym_200sec_1000reloc);
+
+// ---------------------------------------------------------------------------
+// Use-case benchmark: extract all function boundaries from symbol table
+// Simulates: iterate symbols, filter by type, get name + address + size
+// ---------------------------------------------------------------------------
+
+static void BM_UseCase_FunctionBoundaries_CurrentAPI(benchmark::State& state) {
+    auto buf = generate_heavy_obj(100000, 200, 1000);
+    for (auto _ : state) {
+        std::istringstream ss(buf, std::ios::binary);
+        coffi c;
+        c.load(ss);
+
+        auto* syms = c.get_symbols();
+        uint32_t func_count = 0;
+        if (syms) {
+            for (const auto& sym : *syms) {
+                // Filter: ISFCN(type) = type & 0x20
+                if (sym.get_type() & 0x20) {
+                    auto name = sym.get_name(); // std::string alloc!
+                    auto addr = sym.get_value();
+                    auto sec  = sym.get_section_number();
+                    benchmark::DoNotOptimize(name);
+                    benchmark::DoNotOptimize(addr);
+                    benchmark::DoNotOptimize(sec);
+                    func_count++;
+                }
+            }
+        }
+        state.counters["functions"] = func_count;
+    }
+}
+BENCHMARK(BM_UseCase_FunctionBoundaries_CurrentAPI);
+
+// Same use case but with load_symbols_only + zero-copy raw iteration
+static void BM_UseCase_FunctionBoundaries_FastPath(benchmark::State& state) {
+    auto buf = generate_heavy_obj(100000, 200, 1000);
+    for (auto _ : state) {
+        std::istringstream ss(buf, std::ios::binary);
+        coffi c;
+        c.load_symbols_only(ss);
+
+        const symbol_record* records = c.get_symbol_records();
+        uint32_t count = c.get_symbol_records_count();
+        uint32_t func_count = 0;
+
+        for (uint32_t i = 0; i < count; ++i) {
+            const auto& rec = records[i];
+            if (rec.type & 0x20) { // ISFCN
+                auto name = c.string_to_name_view(rec.name);
+                auto addr = rec.value;
+                auto sec  = rec.section_number;
+                benchmark::DoNotOptimize(name);
+                benchmark::DoNotOptimize(addr);
+                benchmark::DoNotOptimize(sec);
+                func_count++;
+            }
+            i += rec.aux_symbols_number; // skip aux records
+        }
+        state.counters["functions"] = func_count;
+    }
+}
+BENCHMARK(BM_UseCase_FunctionBoundaries_FastPath);

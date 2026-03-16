@@ -206,6 +206,26 @@ class coffi_symbols : public virtual symbol_provider,
     const std::vector<symbol>* get_symbols() const { return &symbols_; }
 
     //---------------------------------------------------------------------
+    //! @brief Direct access to the raw symbol record array (zero-copy).
+    //!
+    //! Returns a pointer to the bulk-read symbol_record array and the
+    //! total record count (including auxiliary records). Use with
+    //! string_to_name_view() for zero-allocation symbol iteration.
+    //!
+    //! @note Auxiliary symbol records are interleaved. Use
+    //! aux_symbols_number to skip them.
+    const symbol_record* get_symbol_records() const
+    {
+        return raw_symbols_.data();
+    }
+
+    //---------------------------------------------------------------------
+    uint32_t get_symbol_records_count() const
+    {
+        return narrow_cast<uint32_t>(raw_symbols_.size());
+    }
+
+    //---------------------------------------------------------------------
     //! @copydoc symbol_provider::add_symbol()
     symbol* add_symbol(const std::string& name)
     {
@@ -225,7 +245,31 @@ class coffi_symbols : public virtual symbol_provider,
     //---------------------------------------------------------------------
   protected:
     //---------------------------------------------------------------------
-    void clean_symbols() { symbols_.clear(); }
+    void clean_symbols()
+    {
+        symbols_.clear();
+        raw_symbols_.clear();
+    }
+
+    //---------------------------------------------------------------------
+    //! @brief Load only the raw symbol record table (zero-copy).
+    //!
+    //! Does NOT construct symbol objects. Use get_symbol_records() +
+    //! string_to_name_view() for zero-overhead iteration.
+    bool load_symbol_records_only(std::istream& stream, const coff_header* header)
+    {
+        if (header->get_symbol_table_offset() == 0) {
+            return true;
+        }
+
+        uint32_t sym_count = header->get_symbols_count();
+        stream.seekg(header->get_symbol_table_offset());
+
+        uint32_t table_size = sym_count * sizeof(symbol_record);
+        raw_symbols_.resize(sym_count);
+        stream.read(reinterpret_cast<char*>(raw_symbols_.data()), table_size);
+        return stream.gcount() == static_cast<std::streamsize>(table_size);
+    }
 
     //---------------------------------------------------------------------
     bool load_symbols(std::istream& stream, const coff_header* header)
@@ -237,10 +281,11 @@ class coffi_symbols : public virtual symbol_provider,
         uint32_t sym_count = header->get_symbols_count();
         stream.seekg(header->get_symbol_table_offset());
 
-        // Bulk-read the entire symbol table into memory
+        // Bulk-read the entire symbol table into memory.
+        // Keep the raw buffer for zero-copy access via get_symbol_records().
         uint32_t table_size = sym_count * sizeof(symbol_record);
-        std::vector<symbol_record> raw(sym_count);
-        stream.read(reinterpret_cast<char*>(raw.data()), table_size);
+        raw_symbols_.resize(sym_count);
+        stream.read(reinterpret_cast<char*>(raw_symbols_.data()), table_size);
         if (stream.gcount() != static_cast<std::streamsize>(table_size)) {
             return false;
         }
@@ -250,16 +295,16 @@ class coffi_symbols : public virtual symbol_provider,
             symbols_.emplace_back(this);
             auto& s = symbols_.back();
             std::memcpy(reinterpret_cast<char*>(&s.get_header_ref()),
-                        &raw[i], sizeof(symbol_record));
+                        &raw_symbols_[i], sizeof(symbol_record));
 
-            uint8_t aux_count = raw[i].aux_symbols_number;
+            uint8_t aux_count = raw_symbols_[i].aux_symbols_number;
             if (aux_count > 0) {
                 auto& auxs = s.get_auxiliary_symbols();
                 auxs.reserve(aux_count);
                 for (uint8_t j = 0; j < aux_count && (i + 1 + j) < sym_count; ++j) {
                     auxiliary_symbol_record a;
                     std::memcpy(reinterpret_cast<char*>(&a),
-                                &raw[i + 1 + j], sizeof(symbol_record));
+                                &raw_symbols_[i + 1 + j], sizeof(symbol_record));
                     auxs.push_back(a);
                 }
             }
@@ -292,7 +337,8 @@ class coffi_symbols : public virtual symbol_provider,
     }
 
     //---------------------------------------------------------------------
-    std::vector<symbol> symbols_;
+    std::vector<symbol>        symbols_;
+    std::vector<symbol_record> raw_symbols_;
 };
 
 } // namespace COFFI

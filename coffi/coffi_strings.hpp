@@ -31,6 +31,7 @@ THE SOFTWARE.
 
 #include <cstring>
 #include <new>
+#include <string_view>
 
 #include <coffi/coffi_utils.hpp>
 #include <coffi/coffi_headers.hpp>
@@ -71,6 +72,21 @@ class coffi_strings : public virtual string_to_name_provider
             return;
         }
         *reinterpret_cast<uint32_t*>(strings_.get()) = value;
+    }
+
+    //---------------------------------------------------------------------
+    //! @brief Zero-allocation name resolution returning a string_view.
+    //!
+    //! For names in the string table, returns a view into the buffer.
+    //! For inline names (<=8 chars), returns a view into the name field.
+    //! @note Valid as long as the coffi object is alive.
+    std::string_view string_to_name_view(const char* str) const
+    {
+        if (*(const uint32_t*)str == 0 && strings_) {
+            uint32_t off = *(const uint32_t*)(str + sizeof(uint32_t));
+            return std::string_view(strings_.get() + off);
+        }
+        return std::string_view(str, strnlen(str, COFFI_NAME_SIZE));
     }
 
     //---------------------------------------------------------------------
