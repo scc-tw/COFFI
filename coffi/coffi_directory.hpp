@@ -38,15 +38,6 @@ THE SOFTWARE.
 #include <coffi/coffi_headers.hpp>
 #include <coffi/coffi_section.hpp>
 
-#if defined(__has_include) && __has_include(<gsl/narrow>)
-#include <gsl/narrow>
-using gsl::narrow_cast;
-#else
-#ifndef narrow_cast
-#define narrow_cast static_cast
-#endif
-#endif
-
 namespace COFFI {
 
 //! Class for accessing an image data directory

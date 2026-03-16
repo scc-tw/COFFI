@@ -60,15 +60,6 @@ THE SOFTWARE.
 #include <coffi/coffi_symbols.hpp>
 #include <coffi/coffi_directory.hpp>
 
-#if defined(__has_include) && __has_include(<gsl/narrow>)
-#include <gsl/narrow>
-using gsl::narrow_cast;
-#else
-#ifndef narrow_cast
-#define narrow_cast static_cast
-#endif
-#endif
-
 //! COFFI library namespace
 namespace COFFI {
 
@@ -173,12 +164,12 @@ class coffi : public coffi_strings,
             if (architecture_ == COFFI_ARCHITECTURE_NONE) {
 
                 // Check the target ID
-                static const std::vector<uint16_t> machines = {
+                static const std::vector<uint16_t> ceva_machines = {
                     CEVA_MACHINE_XC4210_LIB,
                     CEVA_MACHINE_XC4210_OBJ,
                 };
-                if (std::find(machines.begin(), machines.end(),
-                              coff_header_->get_machine()) != machines.end()) {
+                if (std::find(ceva_machines.begin(), ceva_machines.end(),
+                              coff_header_->get_machine()) != ceva_machines.end()) {
                     architecture_ = COFFI_ARCHITECTURE_CEVA;
                 }
             }

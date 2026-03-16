@@ -93,91 +93,236 @@ typedef signed long long   int64_t;
 
 //! @}
 
+
 // clang-format off
 //! @name PE file characteristics
 //! @{
+#ifndef IMAGE_FILE_RELOCS_STRIPPED
 #define IMAGE_FILE_RELOCS_STRIPPED         0x0001 //!< Image only, Windows CE, Windows NT and above. Indicates that the file does not contain base relocations and must therefore be loaded at its preferred base address. If the base address is not available, the loader reports an error. Operating systems running on top of MS-DOS (Win32s™) are generally not able to use the preferred base address and so cannot run these images. However, beginning with version 4.0, Windows will use an application’s preferred base address. The default behavior of the linker is to strip base relocations from EXEs.
+#endif
+#ifndef IMAGE_FILE_EXECUTABLE_IMAGE
 #define IMAGE_FILE_EXECUTABLE_IMAGE        0x0002 //!< Image only. Indicates that the image file is valid and can be run. If this flag is not set, it generally indicates a linker error.
+#endif
+#ifndef IMAGE_FILE_LINE_NUMS_STRIPPED
 #define IMAGE_FILE_LINE_NUMS_STRIPPED      0x0004 //!< COFF line numbers have been removed.
+#endif
+#ifndef IMAGE_FILE_LOCAL_SYMS_STRIPPED
 #define IMAGE_FILE_LOCAL_SYMS_STRIPPED     0x0008 //!< COFF symbol table entries for local symbols have been removed
+#endif
+#ifndef IMAGE_FILE_AGGRESSIVE_WS_TRIM
 #define IMAGE_FILE_AGGRESSIVE_WS_TRIM      0x0010 //!< Aggressively trim working set.
+#endif
+#ifndef IMAGE_FILE_LARGE_ADDRESS_AWARE
 #define IMAGE_FILE_LARGE_ADDRESS_AWARE     0x0020 //!< App can handle > 2gb addresses.
+#endif
+#ifndef IMAGE_FILE_16BIT_MACHINE
 #define IMAGE_FILE_16BIT_MACHINE           0x0040 //!< Use of this flag is reserved for future use.
+#endif
+#ifndef IMAGE_FILE_BYTES_REVERSED_LO
 #define IMAGE_FILE_BYTES_REVERSED_LO       0x0080 //!< Little endian: LSB precedes MSB in memory.
+#endif
+#ifndef IMAGE_FILE_32BIT_MACHINE
 #define IMAGE_FILE_32BIT_MACHINE           0x0100 //!< Machine based on 32-bit-word architecture.
+#endif
+#ifndef IMAGE_FILE_DEBUG_STRIPPED
 #define IMAGE_FILE_DEBUG_STRIPPED          0x0200 //!< Debugging information removed from image file.
+#endif
+#ifndef IMAGE_FILE_REMOVABLE_RUN_FROM_SWAP
 #define IMAGE_FILE_REMOVABLE_RUN_FROM_SWAP 0x0400 //!< If image is on removable media, copy and run from swap file.
+#endif
+#ifndef IMAGE_FILE_SYSTEM
 #define IMAGE_FILE_SYSTEM                  0x1000 //!< The image file is a system file, not a user program.
+#endif
+#ifndef IMAGE_FILE_DLL
 #define IMAGE_FILE_DLL                     0x2000 //!< The image file is a dynamic-link library (DLL). Such files are considered executable files for almost all purposes, although they cannot be directly run.
+#endif
+#ifndef IMAGE_FILE_UP_SYSTEM_ONLY
 #define IMAGE_FILE_UP_SYSTEM_ONLY          0x4000 //!< File should be run only on a UP machine.
+#endif
+#ifndef IMAGE_FILE_BYTES_REVERSED_HI
 #define IMAGE_FILE_BYTES_REVERSED_HI       0x8000 //!< Big endian: MSB precedes LSB in memory.
+#endif
 
 //! @}
 
 //! @name PE machine Types
 //! @{
+#ifndef IMAGE_FILE_MACHINE_UNKNOWN
 #define IMAGE_FILE_MACHINE_UNKNOWN   0x0000  //!< The contents of this field are assumed to be applicable to any machine type
+#endif
+#ifndef IMAGE_FILE_MACHINE_AM33
 #define IMAGE_FILE_MACHINE_AM33      0x01d3  //!< Matsushita AM33
+#endif
+#ifndef IMAGE_FILE_MACHINE_AMD64
 #define IMAGE_FILE_MACHINE_AMD64     0x8664  //!< x64
+#endif
+#ifndef IMAGE_FILE_MACHINE_ARM
 #define IMAGE_FILE_MACHINE_ARM       0x01c0  //!< ARM little endian
+#endif
+#ifndef IMAGE_FILE_MACHINE_ARMNT
 #define IMAGE_FILE_MACHINE_ARMNT     0x01c4  //!< ARMv7( or higher ) Thumb mode only
+#endif
+#ifndef IMAGE_FILE_MACHINE_ARM64
 #define IMAGE_FILE_MACHINE_ARM64     0xaa64  //!< ARMv8 in 64 - bit mode
+#endif
+#ifndef IMAGE_FILE_MACHINE_EBC
 #define IMAGE_FILE_MACHINE_EBC       0x0ebc  //!< EFI byte code
+#endif
+#ifndef IMAGE_FILE_MACHINE_I386
 #define IMAGE_FILE_MACHINE_I386      0x014c  //!< Intel 386 or later processors and compatible processors
+#endif
+#ifndef IMAGE_FILE_MACHINE_IA64
 #define IMAGE_FILE_MACHINE_IA64      0x0200  //!< Intel Itanium processor family
+#endif
+#ifndef IMAGE_FILE_MACHINE_M32R
 #define IMAGE_FILE_MACHINE_M32R      0x9041  //!< Mitsubishi M32R little endian
+#endif
+#ifndef IMAGE_FILE_MACHINE_MIPS16
 #define IMAGE_FILE_MACHINE_MIPS16    0x0266  //!< MIPS16
+#endif
+#ifndef IMAGE_FILE_MACHINE_MIPSFPU
 #define IMAGE_FILE_MACHINE_MIPSFPU   0x0366  //!< MIPS with FPU
+#endif
+#ifndef IMAGE_FILE_MACHINE_MIPSFPU16
 #define IMAGE_FILE_MACHINE_MIPSFPU16 0x0466  //!< MIPS16 with FPU
+#endif
+#ifndef IMAGE_FILE_MACHINE_POWERPC
 #define IMAGE_FILE_MACHINE_POWERPC   0x01f0  //!< Power PC little endian
+#endif
+#ifndef IMAGE_FILE_MACHINE_POWERPCFP
 #define IMAGE_FILE_MACHINE_POWERPCFP 0x01f1  //!< Power PC with floating point support
+#endif
+#ifndef IMAGE_FILE_MACHINE_R4000
 #define IMAGE_FILE_MACHINE_R4000     0x0166  //!< MIPS little endian
+#endif
+#ifndef IMAGE_FILE_MACHINE_SH3
 #define IMAGE_FILE_MACHINE_SH3       0x01a2  //!< Hitachi SH3
+#endif
+#ifndef IMAGE_FILE_MACHINE_SH3DSP
 #define IMAGE_FILE_MACHINE_SH3DSP    0x01a3  //!< Hitachi SH3 DSP
+#endif
+#ifndef IMAGE_FILE_MACHINE_SH4
 #define IMAGE_FILE_MACHINE_SH4       0x01a6  //!< Hitachi SH4
+#endif
+#ifndef IMAGE_FILE_MACHINE_SH5
 #define IMAGE_FILE_MACHINE_SH5       0x01a8  //!< Hitachi SH5
+#endif
+#ifndef IMAGE_FILE_MACHINE_THUMB
 #define IMAGE_FILE_MACHINE_THUMB     0x01c2  //!< ARM or Thumb( "interworking" )
+#endif
+#ifndef IMAGE_FILE_MACHINE_WCEMIPSV2
 #define IMAGE_FILE_MACHINE_WCEMIPSV2 0x0169  //!< MIPS little - endian WCE v2
+#endif
 
 //! @}
 
 //! @name PE section flags
 //! @{
+#ifndef IMAGE_SCN_TYPE_NO_PAD
 #define IMAGE_SCN_TYPE_NO_PAD            0x00000008 //!< The section should not be padded to the next boundary.This flag is obsolete and is replaced by IMAGE_SCN_ALIGN_1BYTES.This is valid only for object files.
+#endif
+#ifndef IMAGE_SCN_CNT_CODE
 #define IMAGE_SCN_CNT_CODE               0x00000020 //!< The section contains executable code.
+#endif
+#ifndef IMAGE_SCN_CNT_INITIALIZED_DATA
 #define IMAGE_SCN_CNT_INITIALIZED_DATA   0x00000040 //!< The section contains initialized data.
+#endif
+#ifndef IMAGE_SCN_CNT_UNINITIALIZED_DATA
 #define IMAGE_SCN_CNT_UNINITIALIZED_DATA 0x00000080 //!< The section contains uninitialized data.
+#endif
+#ifndef IMAGE_SCN_LNK_OTHER
 #define IMAGE_SCN_LNK_OTHER              0x00000100 //!< Reserved for future use.
+#endif
+#ifndef IMAGE_SCN_LNK_INFO
 #define IMAGE_SCN_LNK_INFO               0x00000200 //!< The section contains comments or other information.The.drectve section has this type.This is valid for object files only.
+#endif
+#ifndef IMAGE_SCN_LNK_REMOVE
 #define IMAGE_SCN_LNK_REMOVE             0x00000800 //!< The section will not become part of the image.This is valid only for object files.
+#endif
+#ifndef IMAGE_SCN_LNK_COMDAT
 #define IMAGE_SCN_LNK_COMDAT             0x00001000 //!< The section contains COMDAT data.For more information, see section 5.5.6, "COMDAT Sections( Object Only )." This is valid only for object files.
+#endif
+#ifndef IMAGE_SCN_GPREL
 #define IMAGE_SCN_GPREL                  0x00008000 //!< The section contains data referenced through the global pointer( GP ).
+#endif
+#ifndef IMAGE_SCN_MEM_PURGEABLE
 #define IMAGE_SCN_MEM_PURGEABLE          0x00020000 //!< Reserved for future use.
+#endif
+#ifndef IMAGE_SCN_MEM_16BIT
 #define IMAGE_SCN_MEM_16BIT              0x00020000 //!< For ARM machine types, the section contains Thumb code.Reserved for future use with other machine types.
+#endif
+#ifndef IMAGE_SCN_MEM_LOCKED
 #define IMAGE_SCN_MEM_LOCKED             0x00040000 //!< Reserved for future use.
+#endif
+#ifndef IMAGE_SCN_MEM_PRELOAD
 #define IMAGE_SCN_MEM_PRELOAD            0x00080000 //!< Reserved for future use.
+#endif
+#ifndef IMAGE_SCN_ALIGN_1BYTES
 #define IMAGE_SCN_ALIGN_1BYTES           0x00100000 //!< Align data on a 1 - byte boundary.Valid only for object files.
+#endif
+#ifndef IMAGE_SCN_ALIGN_2BYTES
 #define IMAGE_SCN_ALIGN_2BYTES           0x00200000 //!< Align data on a 2 - byte boundary.Valid only for object files.
+#endif
+#ifndef IMAGE_SCN_ALIGN_4BYTES
 #define IMAGE_SCN_ALIGN_4BYTES           0x00300000 //!< Align data on a 4 - byte boundary.Valid only for object files.
+#endif
+#ifndef IMAGE_SCN_ALIGN_8BYTES
 #define IMAGE_SCN_ALIGN_8BYTES           0x00400000 //!< Align data on an 8 - byte boundary.Valid only for object files.
+#endif
+#ifndef IMAGE_SCN_ALIGN_16BYTES
 #define IMAGE_SCN_ALIGN_16BYTES          0x00500000 //!< Align data on a 16 - byte boundary.Valid only for object files.
+#endif
+#ifndef IMAGE_SCN_ALIGN_32BYTES
 #define IMAGE_SCN_ALIGN_32BYTES          0x00600000 //!< Align data on a 32 - byte boundary.Valid only for object files.
+#endif
+#ifndef IMAGE_SCN_ALIGN_64BYTES
 #define IMAGE_SCN_ALIGN_64BYTES          0x00700000 //!< Align data on a 64 - byte boundary.Valid only for object files.
+#endif
+#ifndef IMAGE_SCN_ALIGN_128BYTES
 #define IMAGE_SCN_ALIGN_128BYTES         0x00800000 //!< Align data on a 128 - byte boundary.Valid only for object files.
+#endif
+#ifndef IMAGE_SCN_ALIGN_256BYTES
 #define IMAGE_SCN_ALIGN_256BYTES         0x00900000 //!< Align data on a 256 - byte boundary.Valid only for object files.
+#endif
+#ifndef IMAGE_SCN_ALIGN_512BYTES
 #define IMAGE_SCN_ALIGN_512BYTES         0x00A00000 //!< Align data on a 512 - byte boundary.Valid only for object files.
+#endif
+#ifndef IMAGE_SCN_ALIGN_1024BYTES
 #define IMAGE_SCN_ALIGN_1024BYTES        0x00B00000 //!< Align data on a 1024 - byte boundary.Valid only for object files.
+#endif
+#ifndef IMAGE_SCN_ALIGN_2048BYTES
 #define IMAGE_SCN_ALIGN_2048BYTES        0x00C00000 //!< Align data on a 2048 - byte boundary.Valid only for object files.
+#endif
+#ifndef IMAGE_SCN_ALIGN_4096BYTES
 #define IMAGE_SCN_ALIGN_4096BYTES        0x00D00000 //!< Align data on a 4096 - byte boundary.Valid only for object files.
+#endif
+#ifndef IMAGE_SCN_ALIGN_8192BYTES
 #define IMAGE_SCN_ALIGN_8192BYTES        0x00E00000 //!< Align data on an 8192 - byte boundary.Valid only for object files.
+#endif
+#ifndef IMAGE_SCN_LNK_NRELOC_OVFL
 #define IMAGE_SCN_LNK_NRELOC_OVFL        0x01000000 //!< The section contains extended relocations.
+#endif
+#ifndef IMAGE_SCN_MEM_DISCARDABLE
 #define IMAGE_SCN_MEM_DISCARDABLE        0x02000000 //!< The section can be discarded as needed.
+#endif
+#ifndef IMAGE_SCN_MEM_NOT_CACHED
 #define IMAGE_SCN_MEM_NOT_CACHED         0x04000000 //!< The section cannot be cached.
+#endif
+#ifndef IMAGE_SCN_MEM_NOT_PAGED
 #define IMAGE_SCN_MEM_NOT_PAGED          0x08000000 //!< The section is not pageable.
+#endif
+#ifndef IMAGE_SCN_MEM_SHARED
 #define IMAGE_SCN_MEM_SHARED             0x10000000 //!< The section can be shared in memory.
+#endif
+#ifndef IMAGE_SCN_MEM_EXECUTE
 #define IMAGE_SCN_MEM_EXECUTE            0x20000000 //!< The section can be executed as code.
+#endif
+#ifndef IMAGE_SCN_MEM_READ
 #define IMAGE_SCN_MEM_READ               0x40000000 //!< The section can be read.
+#endif
+#ifndef IMAGE_SCN_MEM_WRITE
 #define IMAGE_SCN_MEM_WRITE              0x80000000 //!< The section can be written to.
+#endif
 
 //! @}
 
@@ -204,208 +349,499 @@ typedef signed long long   int64_t;
 
 //! @name COFF Relocations Type Indicators - Intel 386
 //! @{
+#ifndef IMAGE_REL_I386_ABSOLUTE
 #define IMAGE_REL_I386_ABSOLUTE           0x0000 //!< This relocation is ignored.
+#endif
+#ifndef IMAGE_REL_I386_DIR16
 #define IMAGE_REL_I386_DIR16              0x0001 //!< Not supported.
+#endif
+#ifndef IMAGE_REL_I386_REL16
 #define IMAGE_REL_I386_REL16              0x0002 //!< Not supported.
+#endif
+#ifndef IMAGE_REL_I386_DIR32
 #define IMAGE_REL_I386_DIR32              0x0006 //!< The target’s 32-bit virtual address.
+#endif
+#ifndef IMAGE_REL_I386_DIR32NB
 #define IMAGE_REL_I386_DIR32NB            0x0007 //!< The target’s 32-bit relative virtual address.
+#endif
+#ifndef IMAGE_REL_I386_SEG12
 #define IMAGE_REL_I386_SEG12              0x0009 //!< Not supported.
+#endif
+#ifndef IMAGE_REL_I386_SECTION
 #define IMAGE_REL_I386_SECTION            0x000A //!< The 16-bit-section index of the section containing the target. This is used to support debugging information.
+#endif
+#ifndef IMAGE_REL_I386_SECREL
 #define IMAGE_REL_I386_SECREL             0x000B //!< The 32-bit offset of the target from the beginning of its section. This is used to support debugging information as well as static thread local storage.
+#endif
+#ifndef IMAGE_REL_I386_REL32
 #define IMAGE_REL_I386_REL32              0x0014 //!< The 32-bit relative displacement to the target. This supports the x86 relative branch and call instructions.
+#endif
 
 //! @}
 
 //! @name COFF Relocations Type Indicators - MIPS Processors
 //! @{
+#ifndef IMAGE_REL_MIPS_ABSOLUTE
 #define IMAGE_REL_MIPS_ABSOLUTE           0x0000 //!< This relocation is ignored.
+#endif
+#ifndef IMAGE_REL_MIPS_REFHALF
 #define IMAGE_REL_MIPS_REFHALF            0x0001 //!< The high 16 bits of the target’s 32-bit virtual address.
+#endif
+#ifndef IMAGE_REL_MIPS_REFWORD
 #define IMAGE_REL_MIPS_REFWORD            0x0002 //!< The target’s 32-bit virtual address.
+#endif
+#ifndef IMAGE_REL_MIPS_JMPADDR
 #define IMAGE_REL_MIPS_JMPADDR            0x0003 //!< The low 26 bits of the target’s virtual address. This supports the MIPS J and JAL instructions.
+#endif
+#ifndef IMAGE_REL_MIPS_REFHI
 #define IMAGE_REL_MIPS_REFHI              0x0004 //!< The high 16 bits of the target’s 32-bit virtual address. Used for the first instruction in a two-instruction sequence that loads a full address. This relocation must be immediately followed by a PAIR relocations whose SymbolTableIndex contains a signed 16-bit displacement which is added to the upper 16 bits taken from the location being relocated.
+#endif
+#ifndef IMAGE_REL_MIPS_REFLO
 #define IMAGE_REL_MIPS_REFLO              0x0005 //!< The low 16 bits of the target’s virtual address.
+#endif
+#ifndef IMAGE_REL_MIPS_GPREL
 #define IMAGE_REL_MIPS_GPREL              0x0006 //!< 16-bit signed displacement of the target relative to the Global Pointer (GP) register.
+#endif
+#ifndef IMAGE_REL_MIPS_LITERAL
 #define IMAGE_REL_MIPS_LITERAL            0x0007 //!< Same as IMAGE_REL_MIPS_GPREL.
+#endif
+#ifndef IMAGE_REL_MIPS_SECTION
 #define IMAGE_REL_MIPS_SECTION            0x000A //!< The 16-bit section index of the section containing the target. This is used to support debugging information.
+#endif
+#ifndef IMAGE_REL_MIPS_SECREL
 #define IMAGE_REL_MIPS_SECREL             0x000B //!< The 32-bit offset of the target from the beginning of its section. This is used to support debugging information as well as static thread local storage.
+#endif
+#ifndef IMAGE_REL_MIPS_SECRELLO
 #define IMAGE_REL_MIPS_SECRELLO           0x000C //!< The low 16 bits of the 32-bit offset of the target from the beginning of its section.
+#endif
+#ifndef IMAGE_REL_MIPS_SECRELHI
 #define IMAGE_REL_MIPS_SECRELHI           0x000D //!< The high 16 bits of the 32-bit offset of the target from the beginning of its section. A AIR relocation must immediately follow this on. The SymbolTableIndex of the PAIR relocation contains a signed 16-bit displacement, which is added to the upper 16 bits taken from the location being relocated.
+#endif
+#ifndef IMAGE_REL_MIPS_JMPADDR16
 #define IMAGE_REL_MIPS_JMPADDR16          0x0010 //!< The low 26 bits of the target’s virtual address. This supports the MIPS16 JAL instruction.
+#endif
+#ifndef IMAGE_REL_MIPS_REFWORDNB
 #define IMAGE_REL_MIPS_REFWORDNB          0x0022 //!< The target’s 32-bit relative virtual address.
+#endif
+#ifndef IMAGE_REL_MIPS_PAIR
 #define IMAGE_REL_MIPS_PAIR               0x0025 //!< This relocation is only valid when it immediately follows a REFHI or SECRELHI relocation. Its SymbolTableIndex contains a displacement and not an index into the symbol table.
+#endif
 
 //! @}
 
 //! @name COFF Relocations Type Indicators - Alpha Processors
 //! @{
+#ifndef IMAGE_REL_ALPHA_ABSOLUTE
 #define IMAGE_REL_ALPHA_ABSOLUTE          0x0000 //!< This relocation is ignored.
+#endif
+#ifndef IMAGE_REL_ALPHA_REFLONG
 #define IMAGE_REL_ALPHA_REFLONG           0x0001 //!< The target’s 32-bit virtual address. This fixup is illegal in a PE32+ image unless the image has been sandboxed by clearing the IMAGE_FILE_LARGE_ADDRESS_AWARE bit in the File Header.
+#endif
+#ifndef IMAGE_REL_ALPHA_REFQUAD
 #define IMAGE_REL_ALPHA_REFQUAD           0x0002 //!< The target’s 64-bit virtual address.
+#endif
+#ifndef IMAGE_REL_ALPHA_GPREL32
 #define IMAGE_REL_ALPHA_GPREL32           0x0003 //!< 32-bit signed displacement of the target relative to the Global Pointer (GP) register.
+#endif
+#ifndef IMAGE_REL_ALPHA_LITERAL
 #define IMAGE_REL_ALPHA_LITERAL           0x0004 //!< 16-bit signed displacement of the target relative to the Global Pointer (GP) register.
+#endif
+#ifndef IMAGE_REL_ALPHA_LITUSE
 #define IMAGE_REL_ALPHA_LITUSE            0x0005 //!< Reserved for future use.
+#endif
+#ifndef IMAGE_REL_ALPHA_GPDISP
 #define IMAGE_REL_ALPHA_GPDISP            0x0006 //!< Reserved for future use.
+#endif
+#ifndef IMAGE_REL_ALPHA_BRADDR
 #define IMAGE_REL_ALPHA_BRADDR            0x0007 //!< The 21-bit relative displacement to the target. This supports the Alpha relative branch instructions.
+#endif
+#ifndef IMAGE_REL_ALPHA_HINT
 #define IMAGE_REL_ALPHA_HINT              0x0008 //!< 14-bit hints to the processor for the target of an Alpha jump instruction.
+#endif
+#ifndef IMAGE_REL_ALPHA_INLINE_REFLONG
 #define IMAGE_REL_ALPHA_INLINE_REFLONG    0x0009 //!< The target’s 32-bit virtual address split into high and low 16-bit parts. Either an ABSOLUTE or MATCH relocation must immediately follow this relocation. The high 16 bits of the target address are stored in the location identified by the INLINE_REFLONG relocation. The low 16 bits are stored four bytes later if the following relocation is of type ABSOLUTE or at a signed displacement given in the SymbolTableIndex if the following relocation is of type MATCH.
+#endif
+#ifndef IMAGE_REL_ALPHA_REFHI
 #define IMAGE_REL_ALPHA_REFHI             0x000A //!< The high 16 bits of the target’s 32-bit virtual address. Used for the first instruction in a two-instruction sequence that loads a full address. This relocation must be immediately followed by a PAIR relocations whose SymbolTableIndex contains a signed 16-bit displacement which is added to the upper 16 bits taken from the location being relocated.
+#endif
+#ifndef IMAGE_REL_ALPHA_REFLO
 #define IMAGE_REL_ALPHA_REFLO             0x000B //!< The low 16 bits of the target’s virtual address.
+#endif
+#ifndef IMAGE_REL_ALPHA_PAIR
 #define IMAGE_REL_ALPHA_PAIR              0x000C //!< This relocation is only valid when it immediately follows a REFHI , REFQ3, REFQ2, or SECRELHI relocation. Its SymbolTableIndex contains a displacement and not an index into the symbol table.
+#endif
+#ifndef IMAGE_REL_ALPHA_MATCH
 #define IMAGE_REL_ALPHA_MATCH             0x000D //!< This relocation is only valid when it immediately follows INLINE_REFLONG relocation. Its SymbolTableIndex contains the displacement in bytes of the location for the matching low address and not an index into the symbol table.
+#endif
+#ifndef IMAGE_REL_ALPHA_SECTION
 #define IMAGE_REL_ALPHA_SECTION           0x000E //!< The 16-bit section index of the section containing the target. This is used to support debugging information.
+#endif
+#ifndef IMAGE_REL_ALPHA_SECREL
 #define IMAGE_REL_ALPHA_SECREL            0x000F //!< The 32-bit offset of the target from the beginning of its section. This is used to support debugging information as well as static thread local storage.
+#endif
+#ifndef IMAGE_REL_ALPHA_REFLONGNB
 #define IMAGE_REL_ALPHA_REFLONGNB         0x0010 //!< The target’s 32-bit relative virtual address. IMAGE_REL_ALPHA_SECRELLO 0x0011 The low 16 bits of the 32-bit offset of the target from the beginning of its section.
+#endif
+#ifndef IMAGE_REL_ALPHA_SECRELHI
 #define IMAGE_REL_ALPHA_SECRELHI          0x0012 //!< The high 16 bits of the 32-bit offset of the target from the beginning of its section. A PAIR relocation must immediately follow this on. The SymbolTableIndex of the PAIR relocation contains a signed 16-bit displacement which is added to the upper 16 bits taken from the location being relocated.
+#endif
+#ifndef IMAGE_REL_ALPHA_REFQ3
 #define IMAGE_REL_ALPHA_REFQ3             0x0013 //!< The low 16 bits of the high 32 bits of the target’s 64-bit virtual address. This relocation must be immediately followed by a PAIR relocations whose SymbolTableIndex contains a signed 32-bit displacement which is added to the 16 bits taken from the location being relocated. The 16 bits in the relocated location are shifted left by 32 before this addition.
+#endif
+#ifndef IMAGE_REL_ALPHA_REFQ2
 #define IMAGE_REL_ALPHA_REFQ2             0x0014 //!< The high 16 bits of the low 32 bits of the target’s 64-bit virtual address. This relocation must be immediately followed by a PAIR relocations whose SymbolTableIndex contains a signed 16-bit displacement which is added to the upper 16 bits taken from the location being relocated.
+#endif
+#ifndef IMAGE_REL_ALPHA_REFQ1
 #define IMAGE_REL_ALPHA_REFQ1             0x0015 //!< The low 16 bits of the target’s 64-bit virtual address.
+#endif
+#ifndef IMAGE_REL_ALPHA_GPRELLO
 #define IMAGE_REL_ALPHA_GPRELLO           0x0016 //!< The low 16 bits of the 32-bit signed displacement of the target relative to the Global Pointer (GP) register.
+#endif
+#ifndef IMAGE_REL_ALPHA_GPRELHI
 #define IMAGE_REL_ALPHA_GPRELHI           0x0017 //!< The high 16 bits of the 32-bit signed displacement of the target relative to the Global Pointer (GP) register.
+#endif
 
 //! @}
 
 //! @name COFF Relocations Type Indicators - IBM PowerPC Processors
 //! @{
+#ifndef IMAGE_REL_PPC_ABSOLUTE
 #define IMAGE_REL_PPC_ABSOLUTE            0x0000 //!< This relocation is ignored.
+#endif
+#ifndef IMAGE_REL_PPC_ADDR64
 #define IMAGE_REL_PPC_ADDR64              0x0001 //!< The target’s 64-bit virtual address.
+#endif
+#ifndef IMAGE_REL_PPC_ADDR32
 #define IMAGE_REL_PPC_ADDR32              0x0002 //!< The target’s 32-bit virtual address.
+#endif
+#ifndef IMAGE_REL_PPC_ADDR24
 #define IMAGE_REL_PPC_ADDR24              0x0003 //!< The low 24 bits of the target’s virtual address. This is only valid when the target symbol is absolute and can be sign extended to its original value.
+#endif
+#ifndef IMAGE_REL_PPC_ADDR16
 #define IMAGE_REL_PPC_ADDR16              0x0004 //!< The low 16 bits of the target’s virtual address.
+#endif
+#ifndef IMAGE_REL_PPC_ADDR14
 #define IMAGE_REL_PPC_ADDR14              0x0005 //!< The low 14 bits of the target’s virtual address. This is only valid when the target symbol is absolute and can be sign extended to its original value.
+#endif
+#ifndef IMAGE_REL_PPC_REL24
 #define IMAGE_REL_PPC_REL24               0x0006 //!< A 24-bit PC-relative offset to the symbol’s location.
+#endif
+#ifndef IMAGE_REL_PPC_REL14
 #define IMAGE_REL_PPC_REL14               0x0007 //!< A 14-bit PC-relative offset to the symbol’s location.
+#endif
+#ifndef IMAGE_REL_PPC_ADDR32NB
 #define IMAGE_REL_PPC_ADDR32NB            0x000A //!< The target’s 32-bit relative virtual address.
+#endif
+#ifndef IMAGE_REL_PPC_SECREL
 #define IMAGE_REL_PPC_SECREL              0x000B //!< The 32-bit offset of the target from the beginning of its section. This is used to support debugging information as well as static thread local storage.
+#endif
+#ifndef IMAGE_REL_PPC_SECTION
 #define IMAGE_REL_PPC_SECTION             0x000C //!< The 16-bit section index of the section containing the target. This is used to support debugging information.
+#endif
+#ifndef IMAGE_REL_PPC_SECREL16
 #define IMAGE_REL_PPC_SECREL16            0x000F //!< The 16-bit offset of the target from the beginning of its section. This is used to support debugging information as well as static thread local storage.
+#endif
+#ifndef IMAGE_REL_PPC_REFHI
 #define IMAGE_REL_PPC_REFHI               0x0010 //!< The high 16 bits of the target’s 32-bit virtual address. Used for the first instruction in a two-instruction sequence that loads a full address. This relocation must be immediately followed by a PAIR relocations whose SymbolTableIndex contains a signed 16-bit displacement which is added to the upper 16 bits taken from the location being relocated.
+#endif
+#ifndef IMAGE_REL_PPC_REFLO
 #define IMAGE_REL_PPC_REFLO               0x0011 //!< The low 16 bits of the target’s virtual address.
+#endif
+#ifndef IMAGE_REL_PPC_PAIR
 #define IMAGE_REL_PPC_PAIR                0x0012 //!< This relocation is only valid when it immediately follows a REFHI or SECRELHI relocation. Its SymbolTableIndex contains a displacement and not an index into the symbol table.
+#endif
+#ifndef IMAGE_REL_PPC_SECRELLO
 #define IMAGE_REL_PPC_SECRELLO            0x0013 //!< The low 16 bits of the 32-bit offset of the target from the beginning of its section.
+#endif
+#ifndef IMAGE_REL_PPC_SECRELHI
 #define IMAGE_REL_PPC_SECRELHI            0x0014 //!< The high 16 bits of the 32-bit offset of the target from the beginning of its section. A PAIR relocation must immediately follow this on. The SymbolTableIndex of the PAIR relocation contains a signed 16-bit displacement which is added to the upper 16 bits taken from the location being relocated.
+#endif
+#ifndef IMAGE_REL_PPC_GPREL
 #define IMAGE_REL_PPC_GPREL               0x0015 //!< 16-bit signed displacement of the target relative to the Global Pointer (GP) register.
+#endif
 
 //! @}
 
 //! @name COFF Relocations Type Indicators - Hitachi SuperH Processors
 //! @{
+#ifndef IMAGE_REL_SH3_ABSOLUTE
 #define IMAGE_REL_SH3_ABSOLUTE            0x0000 //!< This relocation is ignored.
+#endif
+#ifndef IMAGE_REL_SH3_DIRECT16
 #define IMAGE_REL_SH3_DIRECT16            0x0001 //!< Reference to the 16-bit location that contains the virtual address of the target symbol.
+#endif
+#ifndef IMAGE_REL_SH3_DIRECT32
 #define IMAGE_REL_SH3_DIRECT32            0x0002 //!< The target’s 32-bit virtual address.
+#endif
+#ifndef IMAGE_REL_SH3_DIRECT8
 #define IMAGE_REL_SH3_DIRECT8             0x0003 //!< Reference to the 8-bit location that contains the virtual address of the target symbol.
+#endif
+#ifndef IMAGE_REL_SH3_DIRECT8_WORD
 #define IMAGE_REL_SH3_DIRECT8_WORD        0x0004 //!< Reference to the 8-bit instruction that contains the effective 16-bit virtual address of the target symbol.
+#endif
+#ifndef IMAGE_REL_SH3_DIRECT8_LONG
 #define IMAGE_REL_SH3_DIRECT8_LONG        0x0005 //!< Reference to the 8-bit instruction that contains the effective 32-bit virtual address of the target symbol.
+#endif
+#ifndef IMAGE_REL_SH3_DIRECT4
 #define IMAGE_REL_SH3_DIRECT4             0x0006 //!< Reference to the 8-bit location whose low 4 bits contain the virtual address of the target symbol.
+#endif
+#ifndef IMAGE_REL_SH3_DIRECT4_WORD
 #define IMAGE_REL_SH3_DIRECT4_WORD        0x0007 //!< Reference to the 8-bit instruction whose low 4 bits contain the effective 16-bit virtual address of the target symbol.
+#endif
+#ifndef IMAGE_REL_SH3_DIRECT4_LONG
 #define IMAGE_REL_SH3_DIRECT4_LONG        0x0008 //!< Reference to the 8-bit instruction whose low 4 bits contain the effective 32-bit virtual address of the target symbol.
+#endif
+#ifndef IMAGE_REL_SH3_PCREL8_WORD
 #define IMAGE_REL_SH3_PCREL8_WORD         0x0009 //!< Reference to the 8-bit instruction which contains the effective 16-bit relative offset of the target symbol.
+#endif
+#ifndef IMAGE_REL_SH3_PCREL8_LONG
 #define IMAGE_REL_SH3_PCREL8_LONG         0x000A //!< Reference to the 8-bit instruction which contains the effective 32-bit relative offset of the target symbol.
+#endif
+#ifndef IMAGE_REL_SH3_PCREL12_WORD
 #define IMAGE_REL_SH3_PCREL12_WORD        0x000B //!< Reference to the 16-bit instruction whose low 12 bits contain the effective 16-bit relative offset of the target symbol.
+#endif
+#ifndef IMAGE_REL_SH3_STARTOF_SECTION
 #define IMAGE_REL_SH3_STARTOF_SECTION     0x000C //!< Reference to a 32-bit location that is the virtual address of the symbol’s section.
+#endif
+#ifndef IMAGE_REL_SH3_SIZEOF_SECTION
 #define IMAGE_REL_SH3_SIZEOF_SECTION      0x000D //!< Reference to the 32-bit location that is the size of the symbol’s section.
+#endif
+#ifndef IMAGE_REL_SH3_SECTION
 #define IMAGE_REL_SH3_SECTION             0x000E //!< The 16-bit section index of the section containing the target. This is used to support debugging information.
+#endif
+#ifndef IMAGE_REL_SH3_SECREL
 #define IMAGE_REL_SH3_SECREL              0x000F //!< The 32-bit offset of the target from the beginning of its section. This is used to support debugging information as well as static thread local storage.
+#endif
+#ifndef IMAGE_REL_SH3_DIRECT32_NB
 #define IMAGE_REL_SH3_DIRECT32_NB         0x0010 //!< The target’s 32-bit relative virtual address.
+#endif
 
 //! @}
 
 //! @name COFF Relocations Type Indicators - ARM Processors
 //! @{
+#ifndef IMAGE_REL_ARM_ABSOLUTE
 #define IMAGE_REL_ARM_ABSOLUTE            0x0000 //!< This relocation is ignored.
+#endif
+#ifndef IMAGE_REL_ARM_ADDR32
 #define IMAGE_REL_ARM_ADDR32              0x0001 //!< The target’s 32-bit virtual address.
+#endif
+#ifndef IMAGE_REL_ARM_ADDR32NB
 #define IMAGE_REL_ARM_ADDR32NB            0x0002 //!< The target’s 32-bit relative virtual address.
+#endif
+#ifndef IMAGE_REL_ARM_BRANCH24
 #define IMAGE_REL_ARM_BRANCH24            0x0003 //!< The 24-bit relative displacement to the target.
+#endif
+#ifndef IMAGE_REL_ARM_BRANCH11
 #define IMAGE_REL_ARM_BRANCH11            0x0004 //!< Reference to a subroutine call, consisting of two 16-bit instructions with 11-bit offsets.
+#endif
+#ifndef IMAGE_REL_ARM_SECTION
 #define IMAGE_REL_ARM_SECTION             0x000E //!< The 16-bit section index of the section containing the target. This is used to support debugging information.
+#endif
+#ifndef IMAGE_REL_ARM_SECREL
 #define IMAGE_REL_ARM_SECREL              0x000F //!< The 32-bit offset of the target from the beginning of its section. This is used to support debugging information as well as static thread local storage.
+#endif
 
 //! @}
 
 //! @name COFF Symbol Table, Section Number Values (symbol.section_number)
 //! @{
+#ifndef IMAGE_SYM_UNDEFINED
 #define IMAGE_SYM_UNDEFINED  0 //!< Symbol record is not yet assigned a section. If the value is 0 this indicates a references to an external symbol defined elsewhere. If the value is non-zero this is a common symbol with a size specified by the value.
+#endif
+#ifndef IMAGE_SYM_ABSOLUTE
 #define IMAGE_SYM_ABSOLUTE  -1 //!< The symbol has an absolute (non-relocatable) value and is not an address.
+#endif
+#ifndef IMAGE_SYM_DEBUG
 #define IMAGE_SYM_DEBUG     -2 //!< The symbol provides general type or debugging information but does not correspond to a section. Microsoft tools use this setting along with .file records (storage class FILE).
+#endif
 
 //! @}
 
 //! @name COFF Symbol Table, Type Representation (symbol.type)
 //! @{
+#ifndef IMAGE_SYM_TYPE_NULL
 #define IMAGE_SYM_TYPE_NULL    0 //!< No type information or unknown base type. Microsoft tools use this setting.
+#endif
+#ifndef IMAGE_SYM_TYPE_VOID
 #define IMAGE_SYM_TYPE_VOID    1 //!< No valid type; used with void pointers and functions.
+#endif
+#ifndef IMAGE_SYM_TYPE_CHAR
 #define IMAGE_SYM_TYPE_CHAR    2 //!< Character (signed byte).
+#endif
+#ifndef IMAGE_SYM_TYPE_SHORT
 #define IMAGE_SYM_TYPE_SHORT   3 //!< Two-byte signed integer.
+#endif
+#ifndef IMAGE_SYM_TYPE_INT
 #define IMAGE_SYM_TYPE_INT     4 //!< Natural integer type (normally four bytes in Windows NT).
+#endif
+#ifndef IMAGE_SYM_TYPE_LONG
 #define IMAGE_SYM_TYPE_LONG    5 //!< Four-byte signed integer.
+#endif
+#ifndef IMAGE_SYM_TYPE_FLOAT
 #define IMAGE_SYM_TYPE_FLOAT   6 //!< Four-byte floating-point number.
+#endif
+#ifndef IMAGE_SYM_TYPE_DOUBLE
 #define IMAGE_SYM_TYPE_DOUBLE  7 //!< Eight-byte floating-point number.
+#endif
+#ifndef IMAGE_SYM_TYPE_STRUCT
 #define IMAGE_SYM_TYPE_STRUCT  8 //!< Structure.
+#endif
+#ifndef IMAGE_SYM_TYPE_UNION
 #define IMAGE_SYM_TYPE_UNION   9 //!< Union.
+#endif
+#ifndef IMAGE_SYM_TYPE_ENUM
 #define IMAGE_SYM_TYPE_ENUM   10 //!< Enumerated type.
+#endif
+#ifndef IMAGE_SYM_TYPE_MOE
 #define IMAGE_SYM_TYPE_MOE    11 //!< Member of enumeration (a specific value).
+#endif
+#ifndef IMAGE_SYM_TYPE_BYTE
 #define IMAGE_SYM_TYPE_BYTE   12 //!< Byte; unsigned one-byte integer.
+#endif
+#ifndef IMAGE_SYM_TYPE_WORD
 #define IMAGE_SYM_TYPE_WORD   13 //!< Word; unsigned two-byte integer.
+#endif
+#ifndef IMAGE_SYM_TYPE_UINT
 #define IMAGE_SYM_TYPE_UINT   14 //!< Unsigned integer of natural size (normally, four bytes).
+#endif
+#ifndef IMAGE_SYM_TYPE_DWORD
 #define IMAGE_SYM_TYPE_DWORD  15 //!< Unsigned four-byte integer.
+#endif
 
 //! @}
 
 //! @name Microsoft tools use the type field only to indicate whether or not the symbol is a function, so that the only two resulting values are 0x0 and 0x20 for the Type field.
 //! @{
+#ifndef IMAGE_SYM_TYPE_NOT_FUNCTION
 #define IMAGE_SYM_TYPE_NOT_FUNCTION 0
+#endif
+#ifndef IMAGE_SYM_TYPE_FUNCTION
 #define IMAGE_SYM_TYPE_FUNCTION     0x20
+#endif
 
 //! @}
 
 //! @name Complex types
 //! @{
+#ifndef IMAGE_SYM_DTYPE_NULL
 #define IMAGE_SYM_DTYPE_NULL     0 //!< No derived type; the symbol is a simple scalar variable.
+#endif
+#ifndef IMAGE_SYM_DTYPE_POINTER
 #define IMAGE_SYM_DTYPE_POINTER  1 //!< Pointer to base type.
+#endif
+#ifndef IMAGE_SYM_DTYPE_FUNCTION
 #define IMAGE_SYM_DTYPE_FUNCTION 2 //!< Function returning base type.
+#endif
+#ifndef IMAGE_SYM_DTYPE_ARRAY
 #define IMAGE_SYM_DTYPE_ARRAY    3 //!< Array of base type.
+#endif
 
 //! @}
 
 //! @name COFF Symbol Table, Storage Class (symbol.storage_class)
 //! @{
+#ifndef IMAGE_SYM_CLASS_END_OF_FUNCTION
 #define IMAGE_SYM_CLASS_END_OF_FUNCTION   -1 //!< Special symbol representing end of function, for debugging purposes.
+#endif
+#ifndef IMAGE_SYM_CLASS_NULL
 #define IMAGE_SYM_CLASS_NULL               0 //!< No storage class assigned.
+#endif
+#ifndef IMAGE_SYM_CLASS_AUTOMATIC
 #define IMAGE_SYM_CLASS_AUTOMATIC          1 //!< Automatic (stack) variable. The Value field specifies stack frame offset.
+#endif
+#ifndef IMAGE_SYM_CLASS_EXTERNAL
 #define IMAGE_SYM_CLASS_EXTERNAL           2 //!< Used by Microsoft tools for external symbols. The Value field indicates the size if the section number is IMAGE_SYM_UNDEFINED (0). If the section number is not 0, then the Value field specifies the offset within the section.
+#endif
+#ifndef IMAGE_SYM_CLASS_STATIC
 #define IMAGE_SYM_CLASS_STATIC             3 //!< The Value field specifies the offset of the symbol within the section. If the Value is 0, then the symbol represents a section name.
+#endif
+#ifndef IMAGE_SYM_CLASS_REGISTER
 #define IMAGE_SYM_CLASS_REGISTER           4 //!< Register variable. The Value field specifies register number.
+#endif
+#ifndef IMAGE_SYM_CLASS_EXTERNAL_DEF
 #define IMAGE_SYM_CLASS_EXTERNAL_DEF       5 //!< Symbol is defined externally.
+#endif
+#ifndef IMAGE_SYM_CLASS_LABEL
 #define IMAGE_SYM_CLASS_LABEL              6 //!< Code label defined within the module. The Value field specifies the offset of the symbol within the section.
+#endif
+#ifndef IMAGE_SYM_CLASS_UNDEFINED_LABEL
 #define IMAGE_SYM_CLASS_UNDEFINED_LABEL    7 //!< Reference to a code label not defined. IMAGE_SYM_CLASS_MEMBER_OF_STRUCT 8 Structure member. The Value field specifies nth member.
+#endif
+#ifndef IMAGE_SYM_CLASS_ARGUMENT
 #define IMAGE_SYM_CLASS_ARGUMENT           9 //!< Formal argument (parameter)of a function. The Value field specifies nth argument.
+#endif
+#ifndef IMAGE_SYM_CLASS_STRUCT_TAG
 #define IMAGE_SYM_CLASS_STRUCT_TAG        10 //!< Structure tag-name entry.
+#endif
+#ifndef IMAGE_SYM_CLASS_MEMBER_OF_UNION
 #define IMAGE_SYM_CLASS_MEMBER_OF_UNION   11 //!< Union member. The Value field specifies nth member.
+#endif
+#ifndef IMAGE_SYM_CLASS_UNION_TAG
 #define IMAGE_SYM_CLASS_UNION_TAG         12 //!< Union tag-name entry.
+#endif
+#ifndef IMAGE_SYM_CLASS_TYPE_DEFINITION
 #define IMAGE_SYM_CLASS_TYPE_DEFINITION   13 //!< Typedef entry.
+#endif
+#ifndef IMAGE_SYM_CLASS_UNDEFINED_STATIC
 #define IMAGE_SYM_CLASS_UNDEFINED_STATIC  14 //!< Static data declaration.
+#endif
+#ifndef IMAGE_SYM_CLASS_ENUM_TAG
 #define IMAGE_SYM_CLASS_ENUM_TAG          15 //!< Enumerated type tagname entry.
+#endif
+#ifndef IMAGE_SYM_CLASS_MEMBER_OF_ENUM
 #define IMAGE_SYM_CLASS_MEMBER_OF_ENUM    16 //!< Member of enumeration. Value specifies nth member.
+#endif
+#ifndef IMAGE_SYM_CLASS_REGISTER_PARAM
 #define IMAGE_SYM_CLASS_REGISTER_PARAM    17 //!< Register parameter.
+#endif
+#ifndef IMAGE_SYM_CLASS_BIT_FIELD
 #define IMAGE_SYM_CLASS_BIT_FIELD         18 //!< Bit-field reference. Value specifies nth bit in the bit field.
+#endif
+#ifndef IMAGE_SYM_CLASS_BLOCK
 #define IMAGE_SYM_CLASS_BLOCK            100 //!< A .bb (beginning of block) or .eb (end of block) record. Value is the relocatable address of the code location.
+#endif
+#ifndef IMAGE_SYM_CLASS_FUNCTION
 #define IMAGE_SYM_CLASS_FUNCTION         101 //!< Used by Microsoft tools for symbol records that define the extent of a function: begin function (named .bf), end function (.ef), and lines in function (.lf). For .lf records, Value gives the number of source lines in the function. For .ef records, Value gives the size of function code.
+#endif
+#ifndef IMAGE_SYM_CLASS_END_OF_STRUCT
 #define IMAGE_SYM_CLASS_END_OF_STRUCT    102 //!< End of structure entry.
+#endif
+#ifndef IMAGE_SYM_CLASS_FILE
 #define IMAGE_SYM_CLASS_FILE             103 //!< Used by Microsoft tools, as well as traditional COFF format, for the source-file symbol record. The symbol is followed by auxiliary records that name the file.
+#endif
+#ifndef IMAGE_SYM_CLASS_SECTION
 #define IMAGE_SYM_CLASS_SECTION          104 //!< Definition of a section (Microsoft tools use STATIC storage class instead).
+#endif
+#ifndef IMAGE_SYM_CLASS_WEAK_EXTERNAL
 #define IMAGE_SYM_CLASS_WEAK_EXTERNAL    105 //!< Weak external
+#endif
 
 //! @}
 
 //! @name COMDAT Sections (auxiliary_symbol_record_5.selection)
 //! @{
+#ifndef IMAGE_COMDAT_SELECT_NODUPLICATES
 #define IMAGE_COMDAT_SELECT_NODUPLICATES 1
+#endif
+#ifndef IMAGE_COMDAT_SELECT_ANY
 #define IMAGE_COMDAT_SELECT_ANY          2
+#endif
+#ifndef IMAGE_COMDAT_SELECT_SAME_SIZE
 #define IMAGE_COMDAT_SELECT_SAME_SIZE    3
+#endif
+#ifndef IMAGE_COMDAT_SELECT_EXACT_MATCH
 #define IMAGE_COMDAT_SELECT_EXACT_MATCH  4
+#endif
+#ifndef IMAGE_COMDAT_SELECT_ASSOCIATIVE
 #define IMAGE_COMDAT_SELECT_ASSOCIATIVE  5
+#endif
+#ifndef IMAGE_COMDAT_SELECT_LARGEST
 #define IMAGE_COMDAT_SELECT_LARGEST      6
+#endif
 
 //! @}
+
 
 // See Texas Instruments documentation spraao8
 

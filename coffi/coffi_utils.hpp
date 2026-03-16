@@ -32,6 +32,24 @@ THE SOFTWARE.
 #include <stdexcept>
 #include <coffi/coffi_types.hpp>
 
+#ifdef __has_include
+#if __has_include(<gsl/narrow>)
+#include <gsl/narrow>
+using gsl::narrow_cast;
+#endif
+#endif
+#ifndef narrow_cast
+namespace COFFI {
+namespace detail {
+template <typename To, typename From>
+inline constexpr To narrow_cast_impl(From value) noexcept {
+    return static_cast<To>(value);
+}
+} // namespace detail
+} // namespace COFFI
+#define narrow_cast ::COFFI::detail::narrow_cast_impl
+#endif
+
 #define STRINGIFY(NAME) #NAME
 
 /*! @name Macros for accessing the COFF structures fields

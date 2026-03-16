@@ -119,7 +119,7 @@ class relocation
             rel_entry_ti h;
             h.virtual_address    = header.virtual_address;
             h.symbol_table_index = header.symbol_table_index;
-            h.type               = header.type;
+            h.type               = narrow_cast<uint16_t>(header.type);
             h.reserved           = header.reserved;
             stream.write((char*)&(h), sizeof(h));
             break;
@@ -138,7 +138,7 @@ class relocation
             rel_entry h;
             h.virtual_address    = header.virtual_address;
             h.symbol_table_index = header.symbol_table_index;
-            h.type               = header.type;
+            h.type               = narrow_cast<uint16_t>(header.type);
             stream.write((char*)&(h), sizeof(h));
             break;
         }
