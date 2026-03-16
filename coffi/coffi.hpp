@@ -142,7 +142,7 @@ class coffi : public coffi_strings,
         if (coff_header_->load(stream)) {
 
             // Check the machine
-            static const std::vector<uint16_t> machines = {
+            static constexpr uint16_t machines[] = {
                 IMAGE_FILE_MACHINE_AM33,      IMAGE_FILE_MACHINE_AMD64,
                 IMAGE_FILE_MACHINE_ARM,       IMAGE_FILE_MACHINE_ARMNT,
                 IMAGE_FILE_MACHINE_ARM64,     IMAGE_FILE_MACHINE_EBC,
@@ -155,8 +155,8 @@ class coffi : public coffi_strings,
                 IMAGE_FILE_MACHINE_SH5,       IMAGE_FILE_MACHINE_THUMB,
                 IMAGE_FILE_MACHINE_WCEMIPSV2,
             };
-            if (std::find(machines.begin(), machines.end(),
-                          coff_header_->get_machine()) == machines.end()) {
+            if (std::find(std::begin(machines), std::end(machines),
+                          coff_header_->get_machine()) == std::end(machines)) {
                 if (architecture_ == COFFI_ARCHITECTURE_PE) {
                     // The DOS header was detected, but the machine is not recognized
                     // This is an error
@@ -173,12 +173,12 @@ class coffi : public coffi_strings,
             if (architecture_ == COFFI_ARCHITECTURE_NONE) {
 
                 // Check the target ID
-                static const std::vector<uint16_t> machines = {
+                static constexpr uint16_t ceva_machines[] = {
                     CEVA_MACHINE_XC4210_LIB,
                     CEVA_MACHINE_XC4210_OBJ,
                 };
-                if (std::find(machines.begin(), machines.end(),
-                              coff_header_->get_machine()) != machines.end()) {
+                if (std::find(std::begin(ceva_machines), std::end(ceva_machines),
+                              coff_header_->get_machine()) != std::end(ceva_machines)) {
                     architecture_ = COFFI_ARCHITECTURE_CEVA;
                 }
             }
@@ -195,12 +195,12 @@ class coffi : public coffi_strings,
             }
 
             // Check the target ID
-            static const std::vector<uint16_t> target_ids = {
+            static constexpr uint16_t target_ids[] = {
                 TMS470,      TMS320C5400, TMS320C6000,     TMS320C5500,
                 TMS320C2800, MSP430,      TMS320C5500plus,
             };
-            if (std::find(target_ids.begin(), target_ids.end(),
-                          coff_header_->get_target_id()) != target_ids.end()) {
+            if (std::find(std::begin(target_ids), std::end(target_ids),
+                          coff_header_->get_target_id()) != std::end(target_ids)) {
                 architecture_ = COFFI_ARCHITECTURE_TI;
             }
         }
@@ -677,7 +677,7 @@ class coffi : public coffi_strings,
     }
 
     //---------------------------------------------------------------------
-    static uint32_t alignTo(uint32_t number, uint32_t alignment) {
+    static constexpr uint32_t alignTo(uint32_t number, uint32_t alignment) {
         return (number + alignment - 1) & ~(alignment - 1);;
     }
 
@@ -706,7 +706,26 @@ class coffi : public coffi_strings,
             uint32_t size_of_code = 0;
             uint32_t size_of_initialized_data = 0;
             uint32_t size_of_uninitialized_data = 0;
-            for (const auto &section : sections_) {
+
+            // Merged: compute code/data sizes, header sizes, and image
+            // size in a single pass over sections
+            uint32_t section_headers_size = 0;
+            uint32_t size_of_image_sections = 0;
+            uint32_t section_alignment = 0;
+            uint32_t file_alignment = 0;
+            bool has_win = win_header_ != nullptr;
+
+            if (has_win) {
+                win_header_->set_number_of_rva_and_sizes(
+                    narrow_cast<uint32_t>(directories_.get_count()));
+                coff_header_->set_optional_header_size(narrow_cast<uint16_t>(
+                    coff_header_->get_optional_header_size() +
+                    win_header_->get_sizeof() + directories_.get_sizeof()));
+                section_alignment = win_header_->get_section_alignment();
+                file_alignment = win_header_->get_file_alignment();
+            }
+
+            for (const auto& section : sections_) {
                 const uint32_t flags = section.get_flags();
                 const uint32_t data_size = section.get_data_size();
                 if (flags & IMAGE_SCN_CNT_CODE) {
@@ -718,13 +737,37 @@ class coffi : public coffi_strings,
                 if (flags & IMAGE_SCN_CNT_UNINITIALIZED_DATA) {
                     size_of_uninitialized_data += data_size;
                 }
+                if (has_win) {
+                    section_headers_size +=
+                        narrow_cast<uint32_t>(section.get_sizeof());
+                    const uint32_t virtual_size = section.get_virtual_size();
+                    if (virtual_size) {
+                        size_of_image_sections +=
+                            alignTo(virtual_size, section_alignment);
+                    }
+                }
             }
 
             optional_header_->set_code_size(size_of_code);
             optional_header_->set_initialized_data_size(size_of_initialized_data);
             optional_header_->set_uninitialized_data_size(size_of_uninitialized_data);
-        }
-        if (win_header_) {
+
+            if (has_win) {
+                uint32_t size_of_headers = dos_header_->get_stub_size() +
+                    CI_NIDENT1 +
+                    narrow_cast<uint32_t>(coff_header_->get_sizeof()) +
+                    coff_header_->get_optional_header_size() +
+                    section_headers_size;
+                size_of_headers = alignTo(size_of_headers, file_alignment);
+
+                uint32_t size_of_image =
+                    alignTo(size_of_headers, section_alignment) +
+                    size_of_image_sections;
+
+                win_header_->set_image_size(size_of_image);
+                win_header_->set_headers_size(size_of_headers);
+            }
+        } else if (win_header_) {
             win_header_->set_number_of_rva_and_sizes(
                 narrow_cast<uint32_t>(directories_.get_count()));
             coff_header_->set_optional_header_size(narrow_cast<uint16_t>(
@@ -733,25 +776,23 @@ class coffi : public coffi_strings,
 
             const uint32_t section_alignment = win_header_->get_section_alignment();
             const uint32_t file_alignment = win_header_->get_file_alignment();
-
             uint32_t size_of_headers = dos_header_->get_stub_size() +
                 CI_NIDENT1 +
                 narrow_cast<uint32_t>(coff_header_->get_sizeof()) +
                 coff_header_->get_optional_header_size();
+            uint32_t size_of_image_sections = 0;
             for (const auto& section : sections_) {
-              size_of_headers += narrow_cast<uint32_t>(section.get_sizeof());
-            }
-            size_of_headers = alignTo(size_of_headers, file_alignment);
-
-            uint32_t size_of_image = alignTo(size_of_headers, section_alignment);
-            for (const auto &section : sections_) {
+                size_of_headers += narrow_cast<uint32_t>(section.get_sizeof());
                 const uint32_t virtual_size = section.get_virtual_size();
                 if (virtual_size) {
-                    size_of_image += alignTo(virtual_size, section_alignment);
+                    size_of_image_sections +=
+                        alignTo(virtual_size, section_alignment);
                 }
             }
-
-            win_header_->set_image_size(size_of_image);
+            size_of_headers = alignTo(size_of_headers, file_alignment);
+            win_header_->set_image_size(
+                alignTo(size_of_headers, section_alignment) +
+                size_of_image_sections);
             win_header_->set_headers_size(size_of_headers);
         }
 
@@ -777,7 +818,7 @@ class coffi : public coffi_strings,
             sec.save_header(stream);
         }
 
-        for (auto dp : data_pages_) {
+        for (const auto& dp : data_pages_) {
             section* sec;
             switch (dp.type) {
             case DATA_PAGE_RAW:
@@ -829,25 +870,36 @@ class coffi : public coffi_strings,
             narrow_cast<uint32_t>(optional_header_->get_sizeof()) +
             (is_PE32_plus() ? 40 : 36);
 
-        // Copy the file and compute the checksum
+        // Read entire file into memory, compute checksum, write in one shot
+        std::vector<char> buf(file_size);
+        src.read(buf.data(), file_size);
+
+        // Compute checksum over the buffer
         uint32_t chk = 0;
-        for (uint32_t i = 0; i < file_size; i += 2) {
-            char bytes[2] = {0, 0};
-            src.read(bytes, 2);
-            dst.write(bytes, src.gcount());
-            uint16_t word = *(reinterpret_cast<uint16_t*>(bytes));
-            if ((i >= chk_offset) && (i < chk_offset + 4)) {
+        const uint16_t* words = reinterpret_cast<const uint16_t*>(buf.data());
+        uint32_t word_count = file_size / 2;
+        uint32_t chk_word_start = chk_offset / 2;
+        uint32_t chk_word_end = (chk_offset + 4) / 2;
+
+        for (uint32_t i = 0; i < word_count; ++i) {
+            uint16_t word = words[i];
+            if (i >= chk_word_start && i < chk_word_end) {
                 word = 0;
             }
             chk += word;
             chk = (chk >> 16) + (chk & 0xffff);
         }
-        chk = (uint16_t)(((chk >> 16) + chk) & 0xffff);
+        // Handle odd trailing byte
+        if (file_size & 1) {
+            chk += static_cast<uint8_t>(buf[file_size - 1]);
+            chk = (chk >> 16) + (chk & 0xffff);
+        }
+        chk = static_cast<uint16_t>(((chk >> 16) + chk) & 0xffff);
         chk += file_size;
 
-        // Update the checksum in the dst stream
-        dst.seekp(chk_offset);
-        dst.write(reinterpret_cast<char*>(&chk), 4);
+        // Patch checksum into buffer and write everything at once
+        std::memcpy(buf.data() + chk_offset, &chk, 4);
+        dst.write(buf.data(), file_size);
         return true;
     }
 
@@ -928,7 +980,7 @@ class coffi : public coffi_strings,
     {
         uint32_t offset = get_header_end_offset();
 
-        for (auto dp : data_pages_) {
+        for (const auto& dp : data_pages_) {
             auto sec = sections_[dp.index];
             switch (dp.type) {
             case DATA_PAGE_RAW:

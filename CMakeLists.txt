@@ -13,6 +13,9 @@ if(IS_TOP_PROJECT)
     # Turns this on in order to build tests
     option(COFFI_BUILD_TESTS "Build COFFI tests" OFF)
 
+    # Turn this on in order to build benchmarks
+    option(COFFI_BUILD_BENCHMARKS "Build COFFI benchmarks" OFF)
+
     # Generate output of compile commands during generation
     set(CMAKE_EXPORT_COMPILE_COMMANDS, ON)
 endif()
@@ -62,6 +65,10 @@ if(IS_TOP_PROJECT)
         enable_testing()
         add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} USES_TERMINAL)
         add_subdirectory(tests)
+    endif()
+
+    if(COFFI_BUILD_BENCHMARKS)
+        add_subdirectory(benchmarks)
     endif()
 
     include(CMakePackageConfigHelpers)
