@@ -247,7 +247,8 @@ class coffi_symbols : public virtual symbol_provider,
 
         symbols_.reserve(sym_count);
         for (uint32_t i = 0; i < sym_count; ++i) {
-            symbol s{this};
+            symbols_.emplace_back(this);
+            auto& s = symbols_.back();
             std::memcpy(reinterpret_cast<char*>(&s.get_header_ref()),
                         &raw[i], sizeof(symbol_record));
 
@@ -265,7 +266,6 @@ class coffi_symbols : public virtual symbol_provider,
 
             s.set_index(i);
             i += aux_count;
-            symbols_.push_back(std::move(s));
         }
 
         return true;

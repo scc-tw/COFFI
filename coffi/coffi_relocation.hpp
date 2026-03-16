@@ -58,24 +58,16 @@ class relocation
     //! @endaccessors
 
     //------------------------------------------------------------------------------
-    const std::string& get_symbol() const
+    std::string get_symbol() const
     {
-        if (!symbol_resolved_) {
-            const symbol* sym = sym_->get_symbol(header.symbol_table_index);
-            if (sym) {
-                symbol_name_ = sym->get_name();
-            }
-            symbol_resolved_ = true;
-        }
-        return symbol_name_;
+        const symbol* sym = sym_->get_symbol(header.symbol_table_index);
+        return sym ? sym->get_name() : std::string{};
     }
 
     //------------------------------------------------------------------------------
     void set_symbol(uint32_t symbol_table_index)
     {
         header.symbol_table_index = symbol_table_index;
-        symbol_resolved_          = false;
-        symbol_name_.clear();
     }
 
     //------------------------------------------------------------------------------
@@ -173,8 +165,6 @@ class relocation
     const string_to_name_provider* stn_;
     const symbol_provider*         sym_;
     const architecture_provider*   arch_;
-    mutable bool                   symbol_resolved_{false};
-    mutable std::string            symbol_name_;
     rel_entry_generic              header{};
 };
 

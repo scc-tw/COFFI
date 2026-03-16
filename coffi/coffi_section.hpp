@@ -217,18 +217,16 @@ template <class T> class section_impl_tmpl : public section
     //------------------------------------------------------------------------------
     virtual const std::vector<relocation>& get_relocations() const
     {
-        return relocations;
+        materialize_relocations();
+        return relocations_;
     }
 
     //------------------------------------------------------------------------------
     virtual void add_relocation_entry(const rel_entry_generic* entry)
     {
-        relocation r{stn_, sym_, arch_};
-        r.set_type(entry->type);
-        r.set_virtual_address(entry->virtual_address);
-        r.set_symbol(entry->symbol_table_index);
-        relocations.push_back(r);
-        set_reloc_count(narrow_cast<uint32_t>(relocations.size()));
+        rel_entries_.push_back(*entry);
+        relocations_dirty_ = true;
+        set_reloc_count(narrow_cast<uint32_t>(rel_entries_.size()));
     }
 
     //------------------------------------------------------------------------------
@@ -255,11 +253,12 @@ template <class T> class section_impl_tmpl : public section
             }
         }
 
-        // Read relocations (bulk-read then parse)
+        // Read relocations — bulk-read raw entries only (POD, 10-14 bytes each).
+        // Relocation objects are materialized lazily in get_relocations().
         if (get_reloc_count() != 0) {
             stream.seekg(get_reloc_offset());
             uint32_t reloc_count = get_reloc_count();
-            relocations.reserve(reloc_count);
+            rel_entries_.resize(reloc_count);
 
             auto arch = arch_->get_architecture();
             if (arch == COFFI_ARCHITECTURE_TI) {
@@ -267,12 +266,10 @@ template <class T> class section_impl_tmpl : public section
                 stream.read(reinterpret_cast<char*>(raw.data()),
                             reloc_count * sizeof(rel_entry_ti));
                 for (uint32_t i = 0; i < reloc_count; ++i) {
-                    relocation rel{stn_, sym_, arch_};
-                    rel.set_virtual_address(raw[i].virtual_address);
-                    rel.set_type(raw[i].type);
-                    rel.set_reserved(raw[i].reserved);
-                    rel.set_symbol(raw[i].symbol_table_index);
-                    relocations.push_back(std::move(rel));
+                    rel_entries_[i].virtual_address    = raw[i].virtual_address;
+                    rel_entries_[i].symbol_table_index = raw[i].symbol_table_index;
+                    rel_entries_[i].type               = raw[i].type;
+                    rel_entries_[i].reserved           = raw[i].reserved;
                 }
             }
             else if (arch == COFFI_ARCHITECTURE_CEVA) {
@@ -280,11 +277,9 @@ template <class T> class section_impl_tmpl : public section
                 stream.read(reinterpret_cast<char*>(raw.data()),
                             reloc_count * sizeof(rel_entry_ceva));
                 for (uint32_t i = 0; i < reloc_count; ++i) {
-                    relocation rel{stn_, sym_, arch_};
-                    rel.set_virtual_address(raw[i].virtual_address);
-                    rel.set_type(raw[i].type);
-                    rel.set_symbol(raw[i].symbol_table_index);
-                    relocations.push_back(std::move(rel));
+                    rel_entries_[i].virtual_address    = raw[i].virtual_address;
+                    rel_entries_[i].symbol_table_index = raw[i].symbol_table_index;
+                    rel_entries_[i].type               = raw[i].type;
                 }
             }
             else {
@@ -292,13 +287,12 @@ template <class T> class section_impl_tmpl : public section
                 stream.read(reinterpret_cast<char*>(raw.data()),
                             reloc_count * sizeof(rel_entry));
                 for (uint32_t i = 0; i < reloc_count; ++i) {
-                    relocation rel{stn_, sym_, arch_};
-                    rel.set_virtual_address(raw[i].virtual_address);
-                    rel.set_type(raw[i].type);
-                    rel.set_symbol(raw[i].symbol_table_index);
-                    relocations.push_back(std::move(rel));
+                    rel_entries_[i].virtual_address    = raw[i].virtual_address;
+                    rel_entries_[i].symbol_table_index = raw[i].symbol_table_index;
+                    rel_entries_[i].type               = raw[i].type;
                 }
             }
+            relocations_dirty_ = true;
         }
 
         // Read line numbers (bulk-read)
@@ -330,8 +324,23 @@ template <class T> class section_impl_tmpl : public section
     //------------------------------------------------------------------------------
     virtual void save_relocations(std::ostream& stream)
     {
-        for (auto& entry : relocations) {
-            entry.save(stream);
+        auto arch = arch_->get_architecture();
+        for (const auto& e : rel_entries_) {
+            if (arch == COFFI_ARCHITECTURE_TI) {
+                rel_entry_ti h{e.virtual_address, e.symbol_table_index,
+                               e.reserved, e.type};
+                stream.write(reinterpret_cast<const char*>(&h), sizeof(h));
+            }
+            else if (arch == COFFI_ARCHITECTURE_CEVA) {
+                rel_entry_ceva h{e.virtual_address, e.symbol_table_index,
+                                 e.type};
+                stream.write(reinterpret_cast<const char*>(&h), sizeof(h));
+            }
+            else {
+                rel_entry h{e.virtual_address, e.symbol_table_index,
+                            narrow_cast<uint16_t>(e.type)};
+                stream.write(reinterpret_cast<const char*>(&h), sizeof(h));
+            }
         }
     }
 
@@ -340,7 +349,7 @@ template <class T> class section_impl_tmpl : public section
     {
         relocation rel{stn_, sym_, arch_};
         return narrow_cast<uint32_t>(rel.get_sizeof()) *
-               narrow_cast<uint32_t>(relocations.size());
+               narrow_cast<uint32_t>(rel_entries_.size());
     }
 
     //------------------------------------------------------------------------------
@@ -388,6 +397,25 @@ template <class T> class section_impl_tmpl : public section
     }
 
     //------------------------------------------------------------------------------
+    void materialize_relocations() const
+    {
+        if (!relocations_dirty_) {
+            return;
+        }
+        relocations_.clear();
+        relocations_.reserve(rel_entries_.size());
+        for (const auto& e : rel_entries_) {
+            relocation rel{stn_, sym_, arch_};
+            rel.set_virtual_address(e.virtual_address);
+            rel.set_type(e.type);
+            rel.set_reserved(e.reserved);
+            rel.set_symbol(e.symbol_table_index);
+            relocations_.push_back(std::move(rel));
+        }
+        relocations_dirty_ = false;
+    }
+
+    //------------------------------------------------------------------------------
     T                        header;
     uint32_t                 index{};
     std::string              name;
@@ -397,7 +425,9 @@ template <class T> class section_impl_tmpl : public section
     symbol_provider*         sym_;
     architecture_provider*   arch_;
 
-    std::vector<relocation>  relocations;
+    std::vector<rel_entry_generic> rel_entries_;
+    mutable bool                   relocations_dirty_{false};
+    mutable std::vector<relocation> relocations_;
     std::vector<line_number> line_numbers;
 };
 
