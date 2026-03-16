@@ -109,7 +109,20 @@ class coffi : public coffi_strings,
             return false;
         }
 
-        return load(stream);
+        // Pre-read entire file into memory for faster parsing.
+        // Eliminates scattered seeks on the file descriptor and
+        // reduces syscall overhead.
+        stream.seekg(0, std::ios::end);
+        auto file_size = stream.tellg();
+        stream.seekg(0);
+        std::vector<char> file_buf(static_cast<size_t>(file_size));
+        stream.read(file_buf.data(), file_size);
+        if (stream.gcount() != file_size) {
+            return false;
+        }
+
+        imemstream mem_stream(file_buf.data(), file_buf.size());
+        return load_from_stream(mem_stream);
     }
 
     //---------------------------------------------------------------------
@@ -120,6 +133,13 @@ class coffi : public coffi_strings,
          * @param[in] stream File to load, as an opened stream.
          */
     bool load(std::istream& stream)
+    {
+        return load_from_stream(stream);
+    }
+
+    //---------------------------------------------------------------------
+    //! @brief Internal load implementation operating on a memory-backed stream.
+    bool load_from_stream(std::istream& stream)
     {
         clean();
 

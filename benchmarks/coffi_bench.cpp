@@ -18,6 +18,29 @@ static std::string read_file_to_string(const std::string& path) {
 // LOAD benchmarks
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Stats — run once to understand file structure
+// ---------------------------------------------------------------------------
+static void BM_Stats_OBJ(benchmark::State& state) {
+    auto buf = read_file_to_string("data/coffi_test.obj");
+    coffi c;
+    std::istringstream ss(buf, std::ios::binary);
+    c.load(ss);
+    auto* syms = c.get_symbols();
+    uint32_t total_relocs = 0;
+    for (const auto& sec : c.get_sections())
+        total_relocs += sec.get_reloc_count();
+    state.counters["symbols"] = syms ? syms->size() : 0;
+    state.counters["sections"] = c.get_sections().get_count();
+    state.counters["relocations"] = total_relocs;
+    for (auto _ : state) {
+        std::istringstream ss2(buf, std::ios::binary);
+        coffi c2;
+        benchmark::DoNotOptimize(c2.load(ss2));
+    }
+}
+BENCHMARK(BM_Stats_OBJ);
+
 static void BM_Load_PE_Small(benchmark::State& state) {
     auto buf = read_file_to_string("data/label.exe"); // 2 KB
     for (auto _ : state) {

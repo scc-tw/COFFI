@@ -234,7 +234,6 @@ template <class T> class section_impl_tmpl : public section
     //------------------------------------------------------------------------------
     bool load(std::istream& stream, std::streampos header_offset)
     {
-        std::fill_n(reinterpret_cast<char*>(&header), sizeof(header), '\0');
         stream.seekg(header_offset);
         stream.read(reinterpret_cast<char*>(&header), sizeof(header));
 
@@ -247,7 +246,7 @@ template <class T> class section_impl_tmpl : public section
         if (!dont) {
             data_reserved_ = get_data_size();
             if ((get_data_offset() != 0) && (data_reserved_ != 0)) {
-                data_.reset(new(std::nothrow) char[data_reserved_]());
+                data_.reset(new(std::nothrow) char[data_reserved_]);
                 if (!data_) {
                     return false;
                 }
