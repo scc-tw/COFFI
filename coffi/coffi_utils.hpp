@@ -30,6 +30,8 @@ THE SOFTWARE.
 #define COFFI_UTILS_HPP
 
 #include <stdexcept>
+#include <streambuf>
+#include <istream>
 #include <coffi/coffi_types.hpp>
 
 #ifdef __has_include
@@ -49,6 +51,54 @@ inline constexpr To narrow_cast_impl(From value) noexcept {
 } // namespace COFFI
 #define narrow_cast ::COFFI::detail::narrow_cast_impl
 #endif
+
+//! @brief Lightweight read-only memory stream buffer (zero-copy, no virtual dispatch overhead for seeks)
+class imemstreambuf : public std::streambuf
+{
+  public:
+    imemstreambuf(const char* data, size_t size)
+    {
+        char* p = const_cast<char*>(data);
+        setg(p, p, p + size);
+    }
+
+  protected:
+    pos_type seekoff(off_type off, std::ios_base::seekdir dir,
+                     std::ios_base::openmode /*which*/) override
+    {
+        char* newpos = nullptr;
+        if (dir == std::ios_base::beg)
+            newpos = eback() + off;
+        else if (dir == std::ios_base::cur)
+            newpos = gptr() + off;
+        else if (dir == std::ios_base::end)
+            newpos = egptr() + off;
+
+        if (!newpos || newpos < eback() || newpos > egptr()) {
+            return pos_type(off_type(-1));
+        }
+        setg(eback(), newpos, egptr());
+        return gptr() - eback();
+    }
+
+    pos_type seekpos(pos_type pos, std::ios_base::openmode which) override
+    {
+        return seekoff(pos, std::ios_base::beg, which);
+    }
+};
+
+//! @brief Read-only memory stream backed by a contiguous buffer
+class imemstream : public std::istream
+{
+  public:
+    imemstream(const char* data, size_t size)
+        : std::istream(&buf_), buf_(data, size)
+    {
+    }
+
+  private:
+    imemstreambuf buf_;
+};
 
 #define STRINGIFY(NAME) #NAME
 

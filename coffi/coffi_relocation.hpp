@@ -58,17 +58,22 @@ class relocation
     //! @endaccessors
 
     //------------------------------------------------------------------------------
-    const std::string& get_symbol() const { return symbol_name; }
+    const std::string& get_symbol() const
+    {
+        if (!symbol_resolved_) {
+            const symbol* sym = sym_->get_symbol(header.symbol_table_index);
+            symbol_name_      = sym ? sym->get_name() : std::string{};
+            symbol_resolved_  = true;
+        }
+        return symbol_name_;
+    }
 
     //------------------------------------------------------------------------------
     void set_symbol(uint32_t symbol_table_index)
     {
         header.symbol_table_index = symbol_table_index;
-        const symbol* sym         = sym_->get_symbol(header.symbol_table_index);
-        symbol_name               = "";
-        if (sym) {
-            symbol_name = sym->get_name();
-        }
+        symbol_resolved_          = false;
+        symbol_name_.clear();
     }
 
     //------------------------------------------------------------------------------
@@ -119,7 +124,7 @@ class relocation
             rel_entry_ti h;
             h.virtual_address    = header.virtual_address;
             h.symbol_table_index = header.symbol_table_index;
-            h.type               = narrow_cast<uint16_t>(header.type);
+            h.type               = header.type;
             h.reserved           = header.reserved;
             stream.write((char*)&(h), sizeof(h));
             break;
@@ -138,7 +143,7 @@ class relocation
             rel_entry h;
             h.virtual_address    = header.virtual_address;
             h.symbol_table_index = header.symbol_table_index;
-            h.type               = narrow_cast<uint16_t>(header.type);
+            h.type               = header.type;
             stream.write((char*)&(h), sizeof(h));
             break;
         }
@@ -166,7 +171,8 @@ class relocation
     const string_to_name_provider* stn_;
     const symbol_provider*         sym_;
     const architecture_provider*   arch_;
-    std::string                    symbol_name;
+    mutable bool                   symbol_resolved_{false};
+    mutable std::string            symbol_name_;
     rel_entry_generic              header{};
 };
 
