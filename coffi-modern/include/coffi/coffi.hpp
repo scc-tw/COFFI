@@ -37,6 +37,15 @@
 #include <coffi/views/symbol_view.hpp>
 #include <coffi/views/import_view.hpp>
 
+// Editor (mutable CRUD layer)
+#include <coffi/editor/data_builder.hpp>
+#include <coffi/editor/string_table_builder.hpp>
+#include <coffi/editor/section_entry.hpp>
+#include <coffi/editor/symbol_entry.hpp>
+#include <coffi/editor/import_builder.hpp>
+#include <coffi/editor/layout.hpp>
+#include <coffi/editor/coff_editor.hpp>
+
 #include <variant>
 #include <fstream>
 #include <vector>

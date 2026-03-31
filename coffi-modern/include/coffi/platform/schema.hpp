@@ -289,6 +289,90 @@ struct image_import_by_name {
 };
 static_assert(sizeof(image_import_by_name) == 2);
 
+// ================================================================
+//  Texas Instruments COFF Structures
+// ================================================================
+
+// TI target IDs
+inline constexpr uint16_t TI_TMS470          = 0x0097;
+inline constexpr uint16_t TI_TMS320C5400     = 0x0098;
+inline constexpr uint16_t TI_TMS320C6000     = 0x0099;
+inline constexpr uint16_t TI_TMS320C5500     = 0x009C;
+inline constexpr uint16_t TI_TMS320C2800     = 0x009D;
+inline constexpr uint16_t TI_MSP430          = 0x00A0;
+inline constexpr uint16_t TI_TMS320C5500PLUS = 0x00A1;
+
+// TI section flags (STYP_*)
+inline constexpr uint32_t STYP_REG    = 0x00000000;
+inline constexpr uint32_t STYP_DSECT  = 0x00000001;
+inline constexpr uint32_t STYP_NOLOAD = 0x00000002;
+inline constexpr uint32_t STYP_TEXT   = 0x00000020;
+inline constexpr uint32_t STYP_DATA   = 0x00000040;
+inline constexpr uint32_t STYP_BSS    = 0x00000080;
+
+struct coff_file_header_ti {
+    uint16_t version;
+    uint16_t sections_count;
+    uint32_t time_date_stamp;
+    uint32_t symbol_table_offset;
+    uint32_t symbols_count;
+    uint16_t optional_header_size;
+    uint16_t flags;
+    uint16_t target_id;
+};
+static_assert(sizeof(coff_file_header_ti) == 22);
+
+struct section_header_ti {
+    char     name[8];
+    uint32_t physical_address;
+    uint32_t virtual_address;
+    uint32_t data_size;
+    uint32_t data_offset;
+    uint32_t reloc_offset;
+    uint32_t reserved_0;
+    uint32_t reloc_count;
+    uint32_t line_num_count;
+    uint32_t flags;
+    uint16_t reserved_1;
+    uint16_t page_number;
+};
+static_assert(sizeof(section_header_ti) == 48);
+
+struct common_optional_header_ti {
+    uint16_t magic;
+    uint16_t linker_version;
+    uint32_t code_size;
+    uint32_t initialized_data_size;
+    uint32_t uninitialized_data_size;
+    uint32_t entry_point_address;
+    uint32_t code_base;
+    uint32_t data_base;
+};
+static_assert(sizeof(common_optional_header_ti) == 28);
+
+struct rel_entry_ti {
+    uint32_t virtual_address;
+    uint32_t symbol_table_index;
+    uint16_t reserved;
+    uint16_t type;
+};
+static_assert(sizeof(rel_entry_ti) == 12);
+
+// ================================================================
+//  CEVA COFF Structures
+// ================================================================
+
+inline constexpr uint16_t CEVA_MACHINE_XC4210_LIB = 0xDCA6;
+inline constexpr uint16_t CEVA_MACHINE_XC4210_OBJ = 0x8CA6;
+inline constexpr uint32_t CEVA_UNINITIALIZED_DATA  = 0x80;
+
+struct rel_entry_ceva {
+    uint32_t virtual_address;
+    uint32_t symbol_table_index;
+    uint32_t type;  // 32-bit (not 16-bit like PE)
+};
+static_assert(sizeof(rel_entry_ceva) == 12);
+
 #pragma pack(pop)
 
 } // namespace coffi

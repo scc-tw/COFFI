@@ -22,6 +22,13 @@ enum class error_code : uint32_t {
     unsupported_architecture,
     division_by_zero,
     file_too_small,
+    // Editor errors
+    name_too_long,
+    not_found,
+    layout_overflow,
+    write_failed,
+    empty_editor,
+    invalid_state,
 };
 
 constexpr std::string_view to_string(error_code ec) noexcept {
@@ -41,6 +48,12 @@ constexpr std::string_view to_string(error_code ec) noexcept {
         case error_code::unsupported_architecture: return "unsupported architecture";
         case error_code::division_by_zero:         return "division by zero";
         case error_code::file_too_small:           return "file too small";
+        case error_code::name_too_long:            return "name too long";
+        case error_code::not_found:                return "not found";
+        case error_code::layout_overflow:          return "layout overflow";
+        case error_code::write_failed:             return "write failed";
+        case error_code::empty_editor:             return "empty editor";
+        case error_code::invalid_state:            return "invalid state";
     }
     return "unknown error";
 }
