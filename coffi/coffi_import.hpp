@@ -272,9 +272,14 @@ class import_section_accessor
     //! Find the section whose VA range contains @p rva.
     section* find_section_by_rva(uint32_t rva) const;
 
-    //! Bounds-checked RVA-to-pointer resolution.
+    //! Bounds-checked RVA-to-pointer resolution (single byte).
     //! @return pointer into section data, or nullptr on failure.
     const char* rva_to_ptr(uint32_t rva) const;
+
+    //! Bounds-checked RVA-to-pointer for @p n contiguous bytes.
+    //! Guarantees all @p n bytes are within the SAME section's data.
+    //! @return pointer into section data, or nullptr on failure.
+    const char* rva_to_ptr_n(uint32_t rva, uint32_t n) const;
 
     //! Read a null-terminated string from section data at @p rva, bounded
     //! by the containing section's data size.
@@ -342,6 +347,23 @@ import_section_accessor::rva_to_ptr(uint32_t rva) const
 }
 
 //--------------------------------------------------------------------------
+inline const char*
+import_section_accessor::rva_to_ptr_n(uint32_t rva, uint32_t n) const
+{
+    if (n == 0)
+        return rva_to_ptr(rva);
+    section* sec = find_section_by_rva(rva);
+    if (!sec || !sec->get_data())
+        return nullptr;
+    uint32_t offset    = rva - sec->get_virtual_address();
+    uint32_t data_size = sec->get_data_size();
+    // Ensure all n bytes fit: offset + n <= data_size
+    if (offset > data_size - n) // equivalent to offset + n > data_size, overflow-safe
+        return nullptr;
+    return sec->get_data() + offset;
+}
+
+//--------------------------------------------------------------------------
 inline std::string
 import_section_accessor::read_string_at_rva(uint32_t rva) const
 {
@@ -401,15 +423,9 @@ import_section_accessor::parse() const
             break;
         auto entry_rva = static_cast<uint32_t>(entry_rva64);
 
-        const char* entry_ptr = rva_to_ptr(entry_rva);
+        // Ensure all 20 bytes are contiguous within one section
+        const char* entry_ptr = rva_to_ptr_n(entry_rva, sizeof(image_import_descriptor));
         if (!entry_ptr)
-            break;
-
-        // Bounds: make sure the full descriptor fits in the section
-        uint32_t entry_last_byte = entry_rva + sizeof(image_import_descriptor) - 1;
-        if (entry_last_byte < entry_rva) // overflow check
-            break;
-        if (!rva_to_ptr(entry_last_byte))
             break;
 
         image_import_descriptor desc;
@@ -433,10 +449,8 @@ import_section_accessor::parse() const
 
         if (is_plus) {
             for (uint32_t t = thunk_rva;; t += 8) {
-                const char* tp = rva_to_ptr(t);
+                const char* tp = rva_to_ptr_n(t, 8);
                 if (!tp)
-                    break;
-                if (!rva_to_ptr(t + 7))
                     break;
                 uint64_t thunk_val;
                 std::memcpy(&thunk_val, tp, 8);
@@ -450,17 +464,19 @@ import_section_accessor::parse() const
                 }
                 else {
                     auto ibn_rva = static_cast<uint32_t>(thunk_val);
-                    const char* ibn_ptr = rva_to_ptr(ibn_rva);
+                    const char* ibn_ptr = rva_to_ptr_n(ibn_rva, sizeof(image_import_by_name));
                     if (!ibn_ptr)
                         continue;
                     image_import_by_name ibn;
                     std::memcpy(&ibn, ibn_ptr, sizeof(ibn));
                     sym.hint = ibn.hint;
-                    sym.name = read_string_at_rva(ibn_rva + sizeof(ibn));
+                    // Overflow-safe name RVA
+                    uint32_t name_rva = ibn_rva + sizeof(image_import_by_name);
+                    if (name_rva >= ibn_rva) // no overflow
+                        sym.name = read_string_at_rva(name_rva);
                 }
                 mod.symbols.push_back(std::move(sym));
 
-                // Overflow guard for next iteration
                 if (t > UINT32_MAX - 8)
                     break;
             }
@@ -468,10 +484,8 @@ import_section_accessor::parse() const
         else {
             // PE32: 4-byte thunks
             for (uint32_t t = thunk_rva;; t += 4) {
-                const char* tp = rva_to_ptr(t);
+                const char* tp = rva_to_ptr_n(t, 4);
                 if (!tp)
-                    break;
-                if (!rva_to_ptr(t + 3))
                     break;
                 uint32_t thunk_val;
                 std::memcpy(&thunk_val, tp, 4);
@@ -484,17 +498,18 @@ import_section_accessor::parse() const
                     sym.ordinal = thunk_val & 0xFFFF;
                 }
                 else {
-                    const char* ibn_ptr = rva_to_ptr(thunk_val);
+                    const char* ibn_ptr = rva_to_ptr_n(thunk_val, sizeof(image_import_by_name));
                     if (!ibn_ptr)
                         continue;
                     image_import_by_name ibn;
                     std::memcpy(&ibn, ibn_ptr, sizeof(ibn));
                     sym.hint = ibn.hint;
-                    sym.name = read_string_at_rva(thunk_val + sizeof(ibn));
+                    uint32_t name_rva = thunk_val + sizeof(image_import_by_name);
+                    if (name_rva >= thunk_val) // no overflow
+                        sym.name = read_string_at_rva(name_rva);
                 }
                 mod.symbols.push_back(std::move(sym));
 
-                // Overflow guard for next iteration
                 if (t > UINT32_MAX - 4)
                     break;
             }
@@ -522,12 +537,10 @@ import_section_accessor::collect_existing_idt() const
         return entries;
     uint32_t idt_rva  = import_dir->get_virtual_address();
     uint32_t idt_size = import_dir->get_size();
-    if (idt_rva == 0)
+    if (idt_rva == 0 || idt_size == 0)
         return entries;
 
-    uint32_t max_entries =
-        (idt_size > 0) ? idt_size / sizeof(image_import_descriptor)
-                       : UINT32_MAX; // no size bound if size is 0
+    uint32_t max_entries = idt_size / sizeof(image_import_descriptor);
 
     for (uint32_t idx = 0; idx < max_entries; ++idx) {
         uint64_t rva64 =
@@ -537,13 +550,8 @@ import_section_accessor::collect_existing_idt() const
             break;
         auto rva = static_cast<uint32_t>(rva64);
 
-        const char* ptr = rva_to_ptr(rva);
+        const char* ptr = rva_to_ptr_n(rva, sizeof(image_import_descriptor));
         if (!ptr)
-            break;
-        uint32_t last_byte = rva + sizeof(image_import_descriptor) - 1;
-        if (last_byte < rva) // overflow
-            break;
-        if (!rva_to_ptr(last_byte))
             break;
 
         image_import_descriptor desc;
@@ -639,7 +647,9 @@ import_section_accessor::build_thunks(
 
     // ---- Patch ILT and IAT entries to point to their IBN ----
     for (size_t i = 0; i < symbols.size(); ++i) {
-        auto ibn_rva = static_cast<ThunkType>(section_rva + ibn_offsets[i]);
+        // Overflow-safe RVA computation
+        auto ibn_rva = static_cast<ThunkType>(
+            static_cast<uint64_t>(section_rva) + ibn_offsets[i]);
         builder.patch<ThunkType>(ilt_entry_offsets[i], ibn_rva);
         builder.patch<ThunkType>(iat_entry_offsets[i], ibn_rva);
     }
@@ -704,13 +714,19 @@ import_section_accessor::add_import(
     builder.align(2);
     uint32_t dll_name_offset = builder.write_str(dll_name);
 
-    // Phase 2: Patch the new IDT entry with resolved RVAs
+    // Phase 2: Patch the new IDT entry with resolved RVAs.
+    // Use uint64_t to detect overflow.
+    auto safe_rva = [section_rva](uint32_t offset) -> uint32_t {
+        uint64_t rva = static_cast<uint64_t>(section_rva) + offset;
+        return (rva <= UINT32_MAX) ? static_cast<uint32_t>(rva) : 0;
+    };
+
     image_import_descriptor new_desc{};
-    new_desc.original_first_thunk = section_rva + ilt_offset;
+    new_desc.original_first_thunk = safe_rva(ilt_offset);
     new_desc.time_date_stamp      = 0;
     new_desc.forwarder_chain      = 0;
-    new_desc.name                 = section_rva + dll_name_offset;
-    new_desc.first_thunk          = section_rva + iat_offset;
+    new_desc.name                 = safe_rva(dll_name_offset);
+    new_desc.first_thunk          = safe_rva(iat_offset);
     builder.patch(new_idt_offset, new_desc);
 
     // ---- Create the section ----
@@ -739,7 +755,7 @@ import_section_accessor::add_import(
     // DATA_DIRECTORY[12] — IAT (covers this DLL's IAT; see class docs)
     uint32_t thunk_size  = is_plus ? 8u : 4u;
     uint32_t iat_entries = static_cast<uint32_t>(symbols.size()) + 1; // +terminator
-    dirs[DIRECTORY_IAT]->set_virtual_address(section_rva + iat_offset);
+    dirs[DIRECTORY_IAT]->set_virtual_address(safe_rva(iat_offset));
     dirs[DIRECTORY_IAT]->set_size(iat_entries * thunk_size);
 
     // Invalidate parse cache

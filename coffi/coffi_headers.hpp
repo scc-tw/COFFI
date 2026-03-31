@@ -117,7 +117,8 @@ class dos_header
         }
 
         if (get_pe_sign_location() > static_cast<int32_t>(sizeof(header))) {
-            stub_size_      = get_pe_sign_location() - sizeof(header);
+            stub_size_      = static_cast<uint32_t>(get_pe_sign_location()) -
+                              static_cast<uint32_t>(sizeof(header));
             std::unique_ptr<char[]> read_stub(new(std::nothrow) char[stub_size_]());
             if (!read_stub) {
                 return false;
@@ -147,7 +148,9 @@ class dos_header
     void save(std::ostream& stream)
     {
         stream.write(reinterpret_cast<char*>(&header), sizeof(header));
-        stream.write(stub_.get(), stub_size_);
+        if (stub_ && stub_size_ > 0) {
+            stream.write(stub_.get(), stub_size_);
+        }
         stream.put(PEMAG2);
         stream.put(PEMAG3);
         stream.put(PEMAG4);
@@ -197,7 +200,7 @@ class dos_header
     //------------------------------------------------------------------------------
     msdos_header                  header;
     std::unique_ptr<const char[]> stub_;
-    int                           stub_size_;
+    uint32_t                      stub_size_;
 };
 
 //------------------------------------------------------------------------------

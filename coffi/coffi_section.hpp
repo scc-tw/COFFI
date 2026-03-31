@@ -193,7 +193,10 @@ template <class T> class section_impl_tmpl : public section
             std::copy(data, data + size, data_.get() + get_data_size());
         }
         else {
-            uint32_t new_data_size = 2 * (data_reserved_ + size);
+            uint64_t new_data_size64 = static_cast<uint64_t>(2) * (data_reserved_ + size);
+            if (new_data_size64 > UINT32_MAX)
+                return; // buffer too large
+            uint32_t new_data_size = static_cast<uint32_t>(new_data_size64);
             std::unique_ptr<char[]> new_data(new(std::nothrow) char[new_data_size]());
             if (!new_data) {
                 size = 0;
@@ -262,6 +265,9 @@ template <class T> class section_impl_tmpl : public section
         if (get_reloc_count() != 0) {
             stream.seekg(get_reloc_offset());
             uint32_t reloc_count = get_reloc_count();
+            // Guard against overflow in size computation
+            if (reloc_count > UINT32_MAX / sizeof(rel_entry_ti))
+                return false;
             rel_entries_.resize(reloc_count);
 
             auto arch = arch_->get_architecture();
@@ -538,7 +544,8 @@ class section_impl_ti : public section_impl_tmpl<section_header_ti>
         auto sec_type     = get_flags() & 0x1F;
         bool is_allocated = (sec_type == STYP_REG) || (sec_type == STYP_NOLOAD);
         if (is_allocated) {
-            header.data_size = value / arch_->get_addressable_unit();
+            int au = arch_->get_addressable_unit();
+            header.data_size = (au > 0) ? value / au : value;
         }
         else {
             header.data_size = value;

@@ -822,7 +822,9 @@ class coffi : public coffi_strings,
 
     //---------------------------------------------------------------------
     static constexpr uint32_t alignTo(uint32_t number, uint32_t alignment) {
-        return (number + alignment - 1) & ~(alignment - 1);;
+        if (alignment == 0)
+            return number;
+        return (number + alignment - 1) & ~(alignment - 1);
     }
 
     bool save_to_stream(std::ostream& stream)
@@ -897,7 +899,7 @@ class coffi : public coffi_strings,
             optional_header_->set_uninitialized_data_size(size_of_uninitialized_data);
 
             if (has_win) {
-                uint32_t size_of_headers = dos_header_->get_stub_size() +
+                uint32_t size_of_headers = dos_header_->get_pe_sign_location() +
                     CI_NIDENT1 +
                     narrow_cast<uint32_t>(coff_header_->get_sizeof()) +
                     coff_header_->get_optional_header_size() +
@@ -912,6 +914,8 @@ class coffi : public coffi_strings,
                 win_header_->set_headers_size(size_of_headers);
             }
         } else if (win_header_) {
+            if (!dos_header_)
+                return false;
             win_header_->set_number_of_rva_and_sizes(
                 narrow_cast<uint32_t>(directories_.get_count()));
             coff_header_->set_optional_header_size(narrow_cast<uint16_t>(
@@ -920,7 +924,7 @@ class coffi : public coffi_strings,
 
             const uint32_t section_alignment = win_header_->get_section_alignment();
             const uint32_t file_alignment = win_header_->get_file_alignment();
-            uint32_t size_of_headers = dos_header_->get_stub_size() +
+            uint32_t size_of_headers = dos_header_->get_pe_sign_location() +
                 CI_NIDENT1 +
                 narrow_cast<uint32_t>(coff_header_->get_sizeof()) +
                 coff_header_->get_optional_header_size();
@@ -1004,7 +1008,10 @@ class coffi : public coffi_strings,
 
         // Get the file size
         src.seekg(0, std::ios::end);
-        uint32_t file_size = narrow_cast<uint32_t>(src.tellg());
+        auto tell_pos = src.tellg();
+        if (tell_pos < 0)
+            return false;
+        uint32_t file_size = narrow_cast<uint32_t>(tell_pos);
         src.seekg(0);
 
         // Compute the checksum offset
@@ -1014,19 +1021,24 @@ class coffi : public coffi_strings,
             narrow_cast<uint32_t>(optional_header_->get_sizeof()) +
             (is_PE32_plus() ? 40 : 36);
 
+        // Validate chk_offset is within file bounds
+        if (chk_offset + 4 > file_size)
+            return false;
+
         // Read entire file into memory, compute checksum, write in one shot
         std::vector<char> buf(file_size);
         src.read(buf.data(), file_size);
 
-        // Compute checksum over the buffer
+        // Compute checksum over the buffer using memcpy to avoid
+        // strict-aliasing and alignment issues with reinterpret_cast.
         uint32_t chk = 0;
-        const uint16_t* words = reinterpret_cast<const uint16_t*>(buf.data());
         uint32_t word_count = file_size / 2;
         uint32_t chk_word_start = chk_offset / 2;
         uint32_t chk_word_end = (chk_offset + 4) / 2;
 
         for (uint32_t i = 0; i < word_count; ++i) {
-            uint16_t word = words[i];
+            uint16_t word;
+            std::memcpy(&word, buf.data() + i * 2, 2);
             if (i >= chk_word_start && i < chk_word_end) {
                 word = 0;
             }
@@ -1189,14 +1201,15 @@ class coffi : public coffi_strings,
         if (!win_header_) {
             return;
         }
-        uint32_t         file_alignment  = win_header_->get_file_alignment();
-        uint32_t         previous_offset = get_header_end_offset();
-        uint32_t         previous_size   = previous_offset;
-        const data_page* previous_dp     = nullptr;
+        uint32_t file_alignment = win_header_->get_file_alignment();
+        if (file_alignment == 0)
+            return;
+        uint32_t         cumulative_end = get_header_end_offset();
+        const data_page* previous_dp    = nullptr;
         for (auto dp = data_pages_.begin(); dp != data_pages_.end(); dp++) {
-            if ((previous_size % file_alignment) != 0) {
+            if ((cumulative_end % file_alignment) != 0) {
                 uint32_t size =
-                    file_alignment - (previous_size % file_alignment);
+                    file_alignment - (cumulative_end % file_alignment);
                 if (previous_dp && previous_dp->type == DATA_PAGE_RAW) {
                     // Extend the previous section data
                     std::unique_ptr<char[]> padding(new(std::nothrow) char[size]());
@@ -1208,14 +1221,12 @@ class coffi : public coffi_strings,
                 }
                 else {
                     // Add an unused space
-                    add_unused_space(previous_offset, size);
+                    add_unused_space(cumulative_end, size);
                 }
+                cumulative_end += size;
             }
-            previous_dp   = &*dp;
-            previous_size = dp->size;
-            if (dp->offset > 0) {
-                previous_offset = dp->offset + dp->size;
-            }
+            previous_dp = &*dp;
+            cumulative_end += dp->size;
         }
     }
 

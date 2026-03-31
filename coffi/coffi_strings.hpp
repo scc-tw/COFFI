@@ -82,9 +82,16 @@ class coffi_strings : public virtual string_to_name_provider
     //! @note Valid as long as the coffi object is alive.
     std::string_view string_to_name_view(const char* str) const
     {
-        if (*(const uint32_t*)str == 0 && strings_) {
-            uint32_t off = *(const uint32_t*)(str + sizeof(uint32_t));
-            return std::string_view(strings_.get() + off);
+        uint32_t first4;
+        std::memcpy(&first4, str, sizeof(uint32_t));
+        if (first4 == 0 && strings_) {
+            uint32_t off;
+            std::memcpy(&off, str + sizeof(uint32_t), sizeof(uint32_t));
+            uint32_t str_size = get_strings_size();
+            if (off >= str_size)
+                return {};
+            return std::string_view(strings_.get() + off,
+                                    strnlen(strings_.get() + off, str_size - off));
         }
         return std::string_view(str, strnlen(str, COFFI_NAME_SIZE));
     }
@@ -188,7 +195,7 @@ class coffi_strings : public virtual string_to_name_provider
     //---------------------------------------------------------------------
     void save_strings(std::ostream& stream) const
     {
-        if (strings_ && get_strings_size() > 4) {
+        if (strings_ && get_strings_size() >= 4) {
             stream.write(strings_.get(), get_strings_size());
         }
     }
@@ -198,14 +205,22 @@ class coffi_strings : public virtual string_to_name_provider
                                                 bool        is_section) const
     {
         std::string ret;
+        uint32_t str_size = get_strings_size();
 
-        if (*(uint32_t*)str == 0 && strings_) {
-            uint32_t off = *(uint32_t*)(str + sizeof(uint32_t));
-            ret          = strings_.get() + off;
+        uint32_t first4;
+        std::memcpy(&first4, str, sizeof(uint32_t));
+        if (first4 == 0 && strings_) {
+            uint32_t off;
+            std::memcpy(&off, str + sizeof(uint32_t), sizeof(uint32_t));
+            if (off < str_size)
+                ret = std::string(strings_.get() + off,
+                                  strnlen(strings_.get() + off, str_size - off));
         }
-        else if (is_section && str[0] == '/') {
-            int32_t off = std::atol(str + 1);
-            ret         = strings_.get() + off;
+        else if (is_section && str[0] == '/' && strings_) {
+            uint32_t off = static_cast<uint32_t>(std::atol(str + 1));
+            if (off < str_size)
+                ret = std::string(strings_.get() + off,
+                                  strnlen(strings_.get() + off, str_size - off));
         }
         else {
             char dst[COFFI_NAME_SIZE + 1];
@@ -226,8 +241,11 @@ class coffi_strings : public virtual string_to_name_provider
             size++;
             uint32_t offset = get_strings_size();
             if (get_strings_size() + size > strings_reserved_) {
-                uint32_t new_strings_reserved =
-                    2 * (strings_reserved_ + narrow_cast<uint32_t>(size));
+                uint64_t new_reserved64 =
+                    static_cast<uint64_t>(2) * (strings_reserved_ + narrow_cast<uint32_t>(size));
+                if (new_reserved64 > UINT32_MAX)
+                    return; // string table too large
+                uint32_t new_strings_reserved = static_cast<uint32_t>(new_reserved64);
                 std::unique_ptr<char[]> new_strings(new(std::nothrow) char[new_strings_reserved]());
                 if (!new_strings) {
                     offset = 0;

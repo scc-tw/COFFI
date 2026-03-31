@@ -163,18 +163,19 @@ class coffi_symbols : public virtual symbol_provider,
         if (symbols_.empty()) {
             return nullptr;
         }
-        uint32_t L = 0;
-        uint32_t R = narrow_cast<uint32_t>(symbols_.size()) - 1;
+        // Use int64_t to avoid unsigned underflow when R = m - 1 and m == 0.
+        int64_t L = 0;
+        int64_t R = static_cast<int64_t>(symbols_.size()) - 1;
         while (L <= R) {
-            uint32_t m = (L + R) / 2;
-            if (symbols_[m].get_index() < index) {
+            int64_t m = (L + R) / 2;
+            if (symbols_[static_cast<size_t>(m)].get_index() < index) {
                 L = m + 1;
             }
-            else if (symbols_[m].get_index() > index) {
+            else if (symbols_[static_cast<size_t>(m)].get_index() > index) {
                 R = m - 1;
             }
             else {
-                return &(symbols_[m]);
+                return &(symbols_[static_cast<size_t>(m)]);
             }
         }
         return nullptr;
@@ -265,6 +266,9 @@ class coffi_symbols : public virtual symbol_provider,
         uint32_t sym_count = header->get_symbols_count();
         stream.seekg(header->get_symbol_table_offset());
 
+        // Guard against overflow: sym_count * sizeof(symbol_record)
+        if (sym_count > UINT32_MAX / sizeof(symbol_record))
+            return false;
         uint32_t table_size = sym_count * sizeof(symbol_record);
         raw_symbols_.resize(sym_count);
         stream.read(reinterpret_cast<char*>(raw_symbols_.data()), table_size);
@@ -283,6 +287,9 @@ class coffi_symbols : public virtual symbol_provider,
 
         // Bulk-read the entire symbol table into memory.
         // Keep the raw buffer for zero-copy access via get_symbol_records().
+        // Guard against overflow: sym_count * sizeof(symbol_record)
+        if (sym_count > UINT32_MAX / sizeof(symbol_record))
+            return false;
         uint32_t table_size = sym_count * sizeof(symbol_record);
         raw_symbols_.resize(sym_count);
         stream.read(reinterpret_cast<char*>(raw_symbols_.data()), table_size);
