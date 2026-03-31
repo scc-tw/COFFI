@@ -50,12 +50,15 @@ public:
         return {ptr, len};
     }
 
-    [[nodiscard]] uint32_t virtual_size()    const noexcept { auto h = header(); return h ? h->virtual_size    : 0; }
-    [[nodiscard]] uint32_t virtual_address() const noexcept { auto h = header(); return h ? h->virtual_address : 0; }
-    [[nodiscard]] uint32_t data_size()       const noexcept { auto h = header(); return h ? h->data_size       : 0; }
-    [[nodiscard]] uint32_t data_offset()     const noexcept { auto h = header(); return h ? h->data_offset     : 0; }
-    [[nodiscard]] uint32_t flags()           const noexcept { auto h = header(); return h ? h->flags           : 0; }
-    [[nodiscard]] uint16_t reloc_count()     const noexcept { auto h = header(); return h ? h->reloc_count     : 0; }
+    [[nodiscard]] uint32_t virtual_size()    const noexcept { auto h = header(); return h ? h->virtual_size      : 0; }
+    [[nodiscard]] uint32_t virtual_address() const noexcept { auto h = header(); return h ? h->virtual_address  : 0; }
+    [[nodiscard]] uint32_t data_size()       const noexcept { auto h = header(); return h ? h->data_size        : 0; }
+    [[nodiscard]] uint32_t data_offset()     const noexcept { auto h = header(); return h ? h->data_offset      : 0; }
+    [[nodiscard]] uint32_t reloc_offset()    const noexcept { auto h = header(); return h ? h->reloc_offset     : 0; }
+    [[nodiscard]] uint32_t line_num_offset() const noexcept { auto h = header(); return h ? h->line_num_offset  : 0; }
+    [[nodiscard]] uint32_t flags()           const noexcept { auto h = header(); return h ? h->flags            : 0; }
+    [[nodiscard]] uint16_t reloc_count()     const noexcept { auto h = header(); return h ? h->reloc_count      : 0; }
+    [[nodiscard]] uint16_t line_num_count()  const noexcept { auto h = header(); return h ? h->line_num_count   : 0; }
 
     /// Zero-copy view of this section's raw data.
     [[nodiscard]] byte_view data() const noexcept {
@@ -65,13 +68,31 @@ public:
         return v ? *v : byte_view{};
     }
 
+    /// Read the i-th relocation entry.
+    [[nodiscard]] result<typename Traits::relocation_type> relocation(uint32_t i) const noexcept {
+        auto h = header();
+        if (!h || i >= h->reloc_count) return error_code::out_of_bounds;
+        auto off = static_cast<std::size_t>(h->reloc_offset)
+                 + static_cast<std::size_t>(i) * sizeof(typename Traits::relocation_type);
+        return file_.template read<typename Traits::relocation_type>(off);
+    }
+
+    /// Read the i-th line number entry.
+    [[nodiscard]] result<line_number_entry> line_number(uint32_t i) const noexcept {
+        auto h = header();
+        if (!h || i >= h->line_num_count) return error_code::out_of_bounds;
+        auto off = static_cast<std::size_t>(h->line_num_offset)
+                 + static_cast<std::size_t>(i) * sizeof(line_number_entry);
+        return file_.template read<line_number_entry>(off);
+    }
+
     // Convenience flags
-    [[nodiscard]] bool is_code()       const noexcept { return flags() & SCN_CNT_CODE; }
-    [[nodiscard]] bool is_data()       const noexcept { return flags() & SCN_CNT_INITIALIZED_DATA; }
-    [[nodiscard]] bool is_bss()        const noexcept { return flags() & SCN_CNT_UNINITIALIZED_DATA; }
-    [[nodiscard]] bool is_readable()   const noexcept { return flags() & SCN_MEM_READ; }
-    [[nodiscard]] bool is_writable()   const noexcept { return flags() & SCN_MEM_WRITE; }
-    [[nodiscard]] bool is_executable() const noexcept { return flags() & SCN_MEM_EXECUTE; }
+    [[nodiscard]] bool is_code()       const noexcept { return (flags() & SCN_CNT_CODE) != 0; }
+    [[nodiscard]] bool is_data()       const noexcept { return (flags() & SCN_CNT_INITIALIZED_DATA) != 0; }
+    [[nodiscard]] bool is_bss()        const noexcept { return (flags() & SCN_CNT_UNINITIALIZED_DATA) != 0; }
+    [[nodiscard]] bool is_readable()   const noexcept { return (flags() & SCN_MEM_READ) != 0; }
+    [[nodiscard]] bool is_writable()   const noexcept { return (flags() & SCN_MEM_WRITE) != 0; }
+    [[nodiscard]] bool is_executable() const noexcept { return (flags() & SCN_MEM_EXECUTE) != 0; }
 };
 
 // ================================================================

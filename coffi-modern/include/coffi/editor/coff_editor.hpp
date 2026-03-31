@@ -93,6 +93,22 @@ public:
     [[nodiscard]] msdos_header*       dos_header()       noexcept { return dos_hdr_ ? &*dos_hdr_ : nullptr; }
     [[nodiscard]] const msdos_header* dos_header() const noexcept { return dos_hdr_ ? &*dos_hdr_ : nullptr; }
 
+    // DOS stub (data between DOS header and PE signature)
+    [[nodiscard]] const std::vector<char>& dos_stub() const noexcept { return dos_stub_; }
+    void set_dos_stub(const void* data, std::size_t size) {
+        dos_stub_.assign(static_cast<const char*>(data),
+                         static_cast<const char*>(data) + size);
+        if (dos_hdr_) {
+            dos_hdr_->pe_sign_location =
+                static_cast<int32_t>(sizeof(msdos_header) + dos_stub_.size());
+        }
+    }
+    void clear_dos_stub() noexcept {
+        dos_stub_.clear();
+        if (dos_hdr_)
+            dos_hdr_->pe_sign_location = static_cast<int32_t>(sizeof(msdos_header));
+    }
+
     // --- Optional header ---
     [[nodiscard]] bool has_optional_header() const noexcept { return opt_hdr_.has_value(); }
     void create_optional_header() noexcept {

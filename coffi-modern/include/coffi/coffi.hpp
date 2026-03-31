@@ -253,34 +253,75 @@ public:
 // ================================================================
 
 [[nodiscard]] inline result<detected_arch> detect_architecture(byte_view data) noexcept {
-    if (data.size() < sizeof(msdos_header))
+    if (data.size() < sizeof(coff_file_header))
         return error_code::file_too_small;
 
     std::size_t coff_off = 0;
+    bool has_dos = false;
 
-    auto dos = data.read<msdos_header>(0);
-    if (dos) {
-        uint8_t s0 = static_cast<uint8_t>(dos->signature & 0xFF);
-        uint8_t s1 = static_cast<uint8_t>(dos->signature >> 8);
-        if (s0 == PEMAG0 && s1 == PEMAG1) {
-            auto pe_loc = static_cast<std::size_t>(dos->pe_sign_location);
-            if (pe_loc + 4 > data.size()) return error_code::truncated_header;
-            auto pe_sig = data.read<uint32_t>(pe_loc);
-            if (!pe_sig || *pe_sig != PE_SIGNATURE)
-                return error_code::invalid_pe_signature;
-            coff_off = pe_loc + 4;
+    // Try DOS header → PE signature
+    if (data.size() >= sizeof(msdos_header)) {
+        auto dos = data.read<msdos_header>(0);
+        if (dos) {
+            auto s0 = static_cast<uint8_t>(dos->signature & 0xFF);
+            auto s1 = static_cast<uint8_t>(dos->signature >> 8);
+            if (s0 == PEMAG0 && s1 == PEMAG1) {
+                auto pe_loc = static_cast<std::size_t>(dos->pe_sign_location);
+                if (pe_loc + 4 <= data.size()) {
+                    auto pe_sig = data.read<uint32_t>(pe_loc);
+                    if (pe_sig && *pe_sig == PE_SIGNATURE) {
+                        coff_off = pe_loc + 4;
+                        has_dos = true;
+                    }
+                }
+            }
         }
     }
 
+    // Read as PE COFF header
     auto coff = data.read<coff_file_header>(coff_off);
     if (!coff) return coff.error();
 
-    if (coff->optional_header_size > 0) {
-        auto magic = data.read<uint16_t>(coff_off + sizeof(coff_file_header));
-        if (!magic) return magic.error();
-        if (*magic == OH_MAGIC_PE32PLUS) return detected_arch::pe32plus;
-        if (*magic == OH_MAGIC_PE32 || *magic == OH_MAGIC_PE32ROM)
-            return detected_arch::pe32;
+    // Check PE optional header magic
+    if (has_dos || coff->optional_header_size > 0) {
+        if (coff->optional_header_size > 0) {
+            auto magic = data.read<uint16_t>(coff_off + sizeof(coff_file_header));
+            if (magic) {
+                if (*magic == OH_MAGIC_PE32PLUS) return detected_arch::pe32plus;
+                if (*magic == OH_MAGIC_PE32 || *magic == OH_MAGIC_PE32ROM)
+                    return detected_arch::pe32;
+            }
+        }
+        // Has DOS header but unknown optional magic → still PE32
+        if (has_dos) return detected_arch::pe32;
+    }
+
+    // Check CEVA machine types
+    if (coff->machine == CEVA_MACHINE_XC4210_LIB ||
+        coff->machine == CEVA_MACHINE_XC4210_OBJ) {
+        return detected_arch::ceva;
+    }
+
+    // Check known PE machine types → raw COFF object (no DOS header)
+    switch (coff->machine) {
+        case MACHINE_I386: case MACHINE_AMD64: case MACHINE_ARM:
+        case MACHINE_ARMNT: case MACHINE_ARM64: case MACHINE_POWERPC:
+            return detected_arch::pe32;  // raw COFF object
+        default: break;
+    }
+
+    // Try TI format (different header layout)
+    if (data.size() >= sizeof(coff_file_header_ti)) {
+        auto ti = data.read<coff_file_header_ti>(0);
+        if (ti) {
+            switch (ti->target_id) {
+                case TI_TMS470: case TI_TMS320C5400: case TI_TMS320C6000:
+                case TI_TMS320C5500: case TI_TMS320C2800: case TI_MSP430:
+                case TI_TMS320C5500PLUS:
+                    return detected_arch::ti;
+                default: break;
+            }
+        }
     }
 
     return detected_arch::unknown;
@@ -290,7 +331,10 @@ public:
 //  Type-erased variant for auto-detection
 // ================================================================
 
-using any_coff_file = std::variant<coff_file<pe32_traits>, coff_file<pe32plus_traits>>;
+using any_coff_file = std::variant<
+    coff_file<pe32_traits>,
+    coff_file<pe32plus_traits>
+>;
 
 [[nodiscard]] inline result<any_coff_file> auto_load(byte_view data) noexcept {
     auto arch = detect_architecture(data);
@@ -307,9 +351,12 @@ using any_coff_file = std::variant<coff_file<pe32_traits>, coff_file<pe32plus_tr
             if (!f) return f.error();
             return any_coff_file{std::move(*f)};
         }
-        default:
+        case detected_arch::ti:
+        case detected_arch::ceva:
+        case detected_arch::unknown:
             return error_code::unsupported_architecture;
     }
+    return error_code::unsupported_architecture;
 }
 
 } // namespace coffi

@@ -55,6 +55,9 @@ public:
     [[nodiscard]] uint32_t reloc_offset()    const noexcept { return header_.reloc_offset; }
     void set_reloc_offset(uint32_t v)              noexcept { header_.reloc_offset = v; }
 
+    [[nodiscard]] uint32_t line_num_offset() const noexcept { return header_.line_num_offset; }
+    void set_line_num_offset(uint32_t v)           noexcept { header_.line_num_offset = v; }
+
     [[nodiscard]] uint32_t flags()           const noexcept { return header_.flags; }
     void set_flags(uint32_t f)                     noexcept { header_.flags = f; }
 
