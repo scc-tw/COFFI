@@ -1,0 +1,11 @@
+function(coffi_add_test name)
+    add_executable(${name} ${name}.cpp)
+    target_link_libraries(${name} PRIVATE coffi::coffi-modern GTest::gtest_main)
+    add_test(NAME ${name} COMMAND ${name})
+endfunction()
+
+coffi_add_test(core_test)
+coffi_add_test(lazy_test)
+coffi_add_test(schema_test)
+coffi_add_test(view_test)
+coffi_add_test(coff_file_test)
