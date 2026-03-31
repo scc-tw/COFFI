@@ -80,7 +80,7 @@ public:
         // Null terminator
         {
             image_import_descriptor null_desc{};
-            db.write(null_desc);
+            (void)db.write(null_desc);
         }
         uint32_t idt_total = static_cast<uint32_t>(
             (modules_.size() + 1) * sizeof(image_import_descriptor));
@@ -101,8 +101,7 @@ public:
                 if (!off) return off.error();
                 ilt_thunk_offsets.push_back(*off);
             }
-            // ILT null terminator
-            db.reserve_bytes(thunk_sz);
+            (void)db.reserve_bytes(thunk_sz); // ILT null terminator
 
             // IAT (same structure)
             auto iat_off = db.pos();
@@ -113,8 +112,7 @@ public:
                 if (!off) return off.error();
                 iat_thunk_offsets.push_back(*off);
             }
-            // IAT null terminator
-            db.reserve_bytes(thunk_sz);
+            (void)db.reserve_bytes(thunk_sz); // IAT null terminator
             total_iat_size += (sym_count + 1) * thunk_sz;
 
             // Hint/Name entries
@@ -125,35 +123,34 @@ public:
                 if (sym.is_ordinal) {
                     thunk_val = static_cast<thunk_t>(Traits::ordinal_flag | sym.ordinal);
                 } else {
-                    db.align(2);
+                    (void)db.align(2);
                     auto ibn_off = db.pos();
-                    db.write(sym.hint);
-                    db.write_str(sym.name);
+                    (void)db.write(sym.hint);
+                    (void)db.write_str(sym.name);
                     thunk_val = static_cast<thunk_t>(section_rva + ibn_off);
                 }
-                // Patch ILT and IAT
-                db.patch(ilt_thunk_offsets[si], thunk_val);
-                db.patch(iat_thunk_offsets[si], thunk_val);
+                (void)db.patch(ilt_thunk_offsets[si], thunk_val);
+                (void)db.patch(iat_thunk_offsets[si], thunk_val);
             }
 
             // DLL name
-            db.align(2);
+            (void)db.align(2);
             auto dll_name_off = db.pos();
-            db.write_str(mod.dll_name);
+            (void)db.write_str(mod.dll_name);
 
             // Patch IDT entry
             image_import_descriptor idt{};
             idt.original_first_thunk = section_rva + ilt_off;
             idt.name                 = section_rva + dll_name_off;
             idt.first_thunk          = section_rva + iat_off;
-            db.patch(idt_offsets[mi], idt);
+            (void)db.patch(idt_offsets[mi], idt);
         }
 
-        import_build_result result;
-        result.section_data = db.take();
-        result.import_dir   = {section_rva, idt_total};
-        result.iat_dir      = {section_rva + first_iat_offset, total_iat_size};
-        return result;
+        import_build_result res;
+        res.section_data = db.take();
+        res.import_dir   = {section_rva, idt_total};
+        res.iat_dir      = {section_rva + first_iat_offset, total_iat_size};
+        return res;
     }
 };
 

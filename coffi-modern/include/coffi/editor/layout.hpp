@@ -82,7 +82,7 @@ public:
         // Add symbol table size
         uint32_t sym_slots = 0;
         for (auto& s : symbols) sym_slots += s.total_slots();
-        lr.total_size += sym_slots * sizeof(symbol_record);
+        lr.total_size += sym_slots * static_cast<uint32_t>(sizeof(symbol_record));
         // Add string table
         if (!strings.empty())
             lr.total_size += strings.size();
@@ -131,7 +131,7 @@ public:
 
 private:
     static uint32_t compute_headers_end(
-        const typename Traits::file_header_type& coff_hdr,
+        const typename Traits::file_header_type& /*coff_hdr*/,
         const typename Traits::optional_header_type* opt_hdr,
         const std::vector<image_data_directory>& dirs,
         const std::vector<sec_t>& sections,

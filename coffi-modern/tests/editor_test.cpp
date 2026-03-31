@@ -22,8 +22,8 @@ TEST(EditorTest, CreateDosHeader) {
     ASSERT_TRUE(ed.has_dos_header());
     auto* dos = ed.dos_header();
     ASSERT_NE(dos, nullptr);
-    uint8_t s0 = dos->signature & 0xFF;
-    uint8_t s1 = dos->signature >> 8;
+    auto s0 = static_cast<uint8_t>(dos->signature & 0xFF);
+    auto s1 = static_cast<uint8_t>(dos->signature >> 8);
     EXPECT_EQ(s0, PEMAG0);
     EXPECT_EQ(s1, PEMAG1);
 }
@@ -204,7 +204,7 @@ TEST(DataBuilderTest, WriteAndPatch) {
     EXPECT_EQ(*off, 0u);
     EXPECT_EQ(db.size(), 4u);
 
-    db.patch(*off, uint32_t{0x12345678});
+    (void)db.patch(*off, uint32_t{0x12345678});
     uint32_t val;
     std::memcpy(&val, db.data(), 4);
     EXPECT_EQ(val, 0x12345678u);
@@ -212,10 +212,10 @@ TEST(DataBuilderTest, WriteAndPatch) {
 
 TEST(DataBuilderTest, ReserveAndAlign) {
     data_builder db;
-    db.write(uint8_t{0xFF});
+    (void)db.write(uint8_t{0xFF});
     EXPECT_EQ(db.size(), 1u);
 
-    db.align(4);
+    (void)db.align(4);
     EXPECT_EQ(db.size(), 4u);
 
     auto off = db.reserve<uint32_t>();

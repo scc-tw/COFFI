@@ -18,6 +18,19 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
 endif()
 
+# --- Compiler Warnings (maximum strictness) ---
+set(COFFI_WARNINGS
+    -Wall -Wextra -Wpedantic -Werror
+    -Wshadow -Wconversion -Wsign-conversion
+    -Wnon-virtual-dtor -Wold-style-cast -Wcast-align
+    -Woverloaded-virtual -Wunused
+    -Wnull-dereference -Wdouble-promotion
+    -Wformat=2 -Wimplicit-fallthrough
+)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    list(APPEND COFFI_WARNINGS -Wduplicated-cond -Wduplicated-branches -Wlogical-op)
+endif()
+
 # --- Library Target ---
 add_library(coffi-modern INTERFACE)
 add_library(coffi::coffi-modern ALIAS coffi-modern)
@@ -28,6 +41,8 @@ target_include_directories(
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
+
+target_compile_options(coffi-modern INTERFACE ${COFFI_WARNINGS})
 
 # --- Dependencies (Google Test) ---
 if(COFFI_BUILD_TESTS)

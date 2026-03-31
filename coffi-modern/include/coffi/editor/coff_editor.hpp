@@ -271,7 +271,7 @@ public:
                 lr->total_size = lr->symbol_table_off;
                 uint32_t sym_slots = 0;
                 for (auto& s : symbols_) sym_slots += s.total_slots();
-                lr->total_size += sym_slots * sizeof(symbol_record);
+                lr->total_size += sym_slots * static_cast<uint32_t>(sizeof(symbol_record));
                 if (!strings_.empty()) lr->total_size += strings_.size();
             }
         }
@@ -510,7 +510,7 @@ private:
                     if (aux) se.add_aux(*aux);
                 }
 
-                i += 1 + rec->aux_symbols_number;
+                i += 1u + rec->aux_symbols_number;
                 symbols_.push_back(std::move(se));
             }
 

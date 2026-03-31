@@ -39,7 +39,7 @@ void dump(const coff_file<Traits>& file) {
                   << std::setw(8)  << static_cast<int>(sym.storage_class())
                   << std::setw(6)  << static_cast<int>(sym.aux_count())
                   << "\n";
-        idx += 1 + sym.aux_count();
+        idx += 1u + sym.aux_count();
     }
 
     std::cout << "\nTotal: " << syms.count() << " records ("
