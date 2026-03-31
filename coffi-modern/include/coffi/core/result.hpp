@@ -3,6 +3,7 @@
 #include <variant>
 #include <optional>
 #include <type_traits>
+#include <functional>
 #include <utility>
 #include <coffi/core/error.hpp>
 

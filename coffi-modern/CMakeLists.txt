@@ -3,8 +3,9 @@ cmake_minimum_required(VERSION 3.20)
 project(coffi-modern VERSION 2.0.0 LANGUAGES C CXX)
 
 # --- Options ---
-option(COFFI_BUILD_TESTS "Build COFFI-Modern tests" ON)
-option(COFFI_BUILD_EXAMPLES "Build COFFI-Modern examples" ON)
+option(COFFI_BUILD_TESTS    "Build COFFI-Modern tests"              ON)
+option(COFFI_BUILD_EXAMPLES "Build COFFI-Modern examples"           ON)
+option(COFFI_FETCH_GTEST    "Fetch Google Test via FetchContent"    OFF)
 
 # --- C++ Standard ---
 set(CMAKE_CXX_STANDARD 17)
@@ -30,17 +31,31 @@ target_include_directories(
 
 # --- Dependencies (Google Test) ---
 if(COFFI_BUILD_TESTS)
-    include(FetchContent)
-    FetchContent_Declare(
-      googletest
-      URL https://github.com/google/googletest/archive/refs/tags/v1.13.0.zip
-    )
-    # For Windows: prevent gtest from overriding our compiler's runtime settings
-    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(googletest)
+    find_package(GTest QUIET)
 
-    enable_testing()
-    add_subdirectory(tests)
+    if(NOT GTest_FOUND)
+        if(COFFI_FETCH_GTEST)
+            message(STATUS "GTest not found — fetching via FetchContent")
+            include(FetchContent)
+            FetchContent_Declare(
+              googletest
+              URL https://github.com/google/googletest/archive/refs/tags/v1.13.0.zip
+            )
+            set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+            FetchContent_MakeAvailable(googletest)
+        else()
+            message(WARNING
+                "GTest not found and COFFI_FETCH_GTEST is OFF — "
+                "tests disabled. Pass -DCOFFI_FETCH_GTEST=ON to auto-download, "
+                "or install GTest system-wide.")
+            set(COFFI_BUILD_TESTS OFF)
+        endif()
+    endif()
+
+    if(COFFI_BUILD_TESTS)
+        enable_testing()
+        add_subdirectory(tests)
+    endif()
 endif()
 
 if(COFFI_BUILD_EXAMPLES)
