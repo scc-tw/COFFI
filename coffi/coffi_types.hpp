@@ -1450,6 +1450,30 @@ struct line_number
 };
 
 //------------------------------------------------------------------------------
+//! PE Import Directory Table entry (IMAGE_IMPORT_DESCRIPTOR).
+//! One per imported DLL, terminated by a zeroed entry.
+struct image_import_descriptor
+{
+    uint32_t original_first_thunk; //!< RVA of the Import Lookup Table (ILT)
+    uint32_t time_date_stamp;      //!< 0 if not bound
+    uint32_t forwarder_chain;      //!< -1 if no forwarders
+    uint32_t name;                 //!< RVA of the DLL name string
+    uint32_t first_thunk;          //!< RVA of the Import Address Table (IAT)
+};
+static_assert(sizeof(image_import_descriptor) == 20,
+              "image_import_descriptor must be exactly 20 bytes");
+
+//------------------------------------------------------------------------------
+//! PE Import Hint/Name entry header (IMAGE_IMPORT_BY_NAME).
+//! The null-terminated function name immediately follows.
+struct image_import_by_name
+{
+    uint16_t hint; //!< Index into export name pointer table; 0 to search by name
+};
+static_assert(sizeof(image_import_by_name) == 2,
+              "image_import_by_name header must be exactly 2 bytes");
+
+//------------------------------------------------------------------------------
 // Interfaces classes (pure virtual classes)
 //------------------------------------------------------------------------------
 class symbol;

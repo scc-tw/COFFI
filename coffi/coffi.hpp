@@ -1125,9 +1125,13 @@ class coffi : public coffi_strings,
         uint32_t offset = get_header_end_offset();
 
         for (const auto& dp : data_pages_) {
-            auto sec = sections_[dp.index];
+            // dp.index is a section index only for RAW / RELOCATIONS /
+            // LINE_NUMBERS pages.  For DIRECTORY and UNUSED pages it is a
+            // directory or unused_spaces index respectively — do NOT use
+            // it to index into sections_.
             switch (dp.type) {
-            case DATA_PAGE_RAW:
+            case DATA_PAGE_RAW: {
+                auto sec = sections_[dp.index];
                 if (sec->get_data()) {
                     sec->set_data_offset(offset);
                     offset += sec->get_data_size();
@@ -1136,7 +1140,9 @@ class coffi : public coffi_strings,
                     sec->set_data_offset(offset);
                 }
                 break;
-            case DATA_PAGE_RELOCATIONS:
+            }
+            case DATA_PAGE_RELOCATIONS: {
+                auto sec = sections_[dp.index];
                 if (sec->get_reloc_count() > 0) {
                     sec->set_reloc_offset(offset);
                 }
@@ -1145,7 +1151,9 @@ class coffi : public coffi_strings,
                 }
                 offset += sec->get_relocations_filesize();
                 break;
-            case DATA_PAGE_LINE_NUMBERS:
+            }
+            case DATA_PAGE_LINE_NUMBERS: {
+                auto sec = sections_[dp.index];
                 if (sec->get_line_num_count() > 0) {
                     sec->set_line_num_offset(offset);
                 }
@@ -1154,6 +1162,7 @@ class coffi : public coffi_strings,
                 }
                 offset += sec->get_line_numbers_filesize();
                 break;
+            }
             case DATA_PAGE_DIRECTORY:
                 if (directories_[dp.index]->get_data_filesize() > 0) {
                     if (directories_[dp.index]->get_virtual_address() != 0) {
@@ -1274,6 +1283,10 @@ class coffi : public coffi_strings,
 };
 
 } // namespace COFFI
+
+// coffi_import.hpp needs the full coffi class definition, so it must
+// be included after the class body above.
+#include <coffi/coffi_import.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
